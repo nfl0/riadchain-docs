@@ -1,0 +1,44 @@
+---
+title: Protocol overview
+description: Understand private home and company networks, Rust execution, transaction settlement and native FILE storage.
+---
+
+Riadchain is an undeployed blockchain for private, permissioned networks in homes and companies. Its intended topology has one active producer and optional, strongly recommended followers. Authenticated peers, funded signing accounts and protected keys define the consensus trust boundary.
+
+The protocol uses [succession](/protocol/succession/) for takeover when a producer becomes unavailable. It is not an open validator network with Byzantine quorum finality. Followers improve independent verification, redundancy and fault detection; they do not remove the need for a trusted operator recovery process.
+
+## One execution authority
+
+The Rust node validates transactions and blocks, executes Charlie contracts, applies state changes and persists canonical history. TypeScript packages build and sign transactions, expose RPC clients and provide development tools through the Connect API.
+
+The high-level contract language compiles to Charlie source. Native deployment validates that source in Rust, and execution uses the Rust Charlie VM. Local IDE sandbox results are development evidence: their simplified host environment does not establish that an on-chain transaction will succeed.
+
+## Transactions and state
+
+RDC uses integer base units: 1 RDC equals 100,000,000 base units. Ordinary spending consumes unspent transaction outputs, or UTXOs, and creates outputs according to the signed transaction and deterministic settlement rules. Native token balances and contract storage are separate state components.
+
+A transaction's canonical identity binds its content and chain. The node checks signatures, funding, transaction shape and resource limits before accepting it. Contract transactions also declare a gas budget. Clients must read the selected node's chain ID and active parameters rather than treating a wallet's network display name as protocol identity.
+
+For constrained device or guest actions, an owner can grant a scoped capability with allowed methods, expiry, resource limits and a prepaid fee vault. Delegated transactions use the capability's authorization and sequence. A capability does not grant block production authority or unrestricted control of the owner's account.
+
+## Inclusion and successful execution
+
+The current producer assembles a bounded block. Every verifying node checks its canonical hash, signature, linkage, time rules, validator eligibility, transaction execution and resulting state commitment.
+
+Contract payload effects are atomic. A failed call rolls back its contract changes, but an admitted transaction can still be included with a failed receipt and pay fees. Applications must inspect the matching execution receipt, not just block inclusion, before reporting success.
+
+An absent mempool entry, timeout or lost submit response is not confirmation. Retain the original transaction ID and query its outcome before considering a new submission. [Fees](/protocol/fees/) explains failure settlement and gas refunds.
+
+## Canonical history and file bytes
+
+Signed genesis and the append-only canonical block log establish history. Consensus state is reconstructed by replay; receipts, query indexes and checkpoints are derived materializations.
+
+A FILE transaction commits a content-addressed CID, size and metadata. Verified bytes live in each node's native archive and are served and replicated by the node. Losing bytes degrades archival completeness without rewriting already accepted consensus state. History cannot recreate those bytes.
+
+Read [storage](/protocol/storage/) for the authority boundaries and [FILE archive operations](/node/file-archive/) for maintenance procedures.
+
+## Changes to a chain
+
+Participants agree on protocol rules and activation heights outside the chain. Signed genesis fixes the initial settings. Numeric consensus protocol IDs are independent of software package releases, and unsupported activation blocks fail closed. There are no on-chain proposals, votes or chain admin keys. A contract's upgrade authority is a narrower, independent concern.
+
+Use one reviewed implementation and the same signed genesis across nodes. See [protocol upgrades](/protocol/upgrades/) for activation schedules and [regtest](/node/regtest/) for fast disposable development networks.

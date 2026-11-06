@@ -1,0 +1,60 @@
+---
+title: Maintain the FILE archive
+description: Understand native content-addressed storage, verify confirmed objects and recover unavailable bytes.
+---
+
+Native FILE storage is part of a Riadchain node. A FILE transaction commits a canonical UnixFS CID, size and optional metadata. The object bytes live in the node's content-addressed archive under `files/objects/<cid>`.
+
+Every confirmed CID belongs in the archive. The protocol does not assign per-file retention classes or let a remote IPFS service replace the node's copy. The CID uses an interoperable content-addressing format; it does not imply that another service has the file.
+
+## From upload to confirmation
+
+FILE transactions record content references on the chain; object bytes live in the native node archive. Confirmation does not guarantee that every node currently has those bytes. Recovery restores verified content without rewriting chain history.
+
+A client builds a FILE transaction for a specific CID and size, submits it and stages those exact bytes through `FileService`. The SDK exposes `uploadFileBytes()` and `uploadFileText()`.
+
+The node bounds upload work, checks the bytes against the declared CID and size and installs verified content atomically. Mining requires local content and the active peer-acknowledgement policy. Staging alone neither confirms the transaction nor charges its on-chain fee.
+
+The default policy requires one peer acknowledgement for fresh staged content. Read the active parameters instead of assuming that every network uses the same policy. An existing verified canonical object already satisfies mining readiness without new peer acknowledgements. The producer retains or promotes verified bytes before committing its block.
+
+After a lost submit or upload response, inspect the original transaction and upload status; resume staging against the same transaction ID where appropriate. Creating a second FILE transaction is a new on-chain action and may pay another storage fee.
+
+## Check local completeness
+
+For online monitoring, use the operator health snapshot and typed FILE methods such as `fileGetByCid()` and `fileHasContent()`. A confirmed reference or receipt is not proof that the particular node serving a request currently has the bytes.
+
+For offline inspection, stop the daemon and run:
+
+```sh
+riadchain-cli files status --data-dir /var/lib/riadchain
+riadchain-cli files status --data-dir /var/lib/riadchain --cid "<confirmed CID>"
+```
+
+Status reports confirmed CIDs, sizes and local availability. It does not claim a remote replica count. These commands use the same directory lock as the running node and fail if the daemon is active.
+
+## Verify the bytes
+
+Scrubbing reads objects and recomputes their canonical UnixFS CIDs:
+
+```sh
+riadchain-cli files scrub --data-dir /var/lib/riadchain
+riadchain-cli files scrub --data-dir /var/lib/riadchain --cid "<confirmed CID>"
+```
+
+Missing or corrupt content produces a failed result. Corrupt objects are quarantined. Plan whole-archive scrubs around disk capacity and other workload; content verification requires reading the objects.
+
+## Recover missing content
+
+The FILE worker attempts authenticated peer rehydration independently of canonical chain synchronization. Bounded rounds rotate through missing CIDs and peers so one unavailable file does not indefinitely block other recovery attempts. Before adopting bytes, it verifies the confirmed transaction context, CID and size.
+
+Missing confirmed bytes are an archive incident. They do not invalidate previously accepted canonical state or justify rewriting blocks. A node can finish chain synchronization while still reporting an incomplete FILE archive.
+
+Recovery requires a verified peer copy or an archive backup. Blocks alone cannot reconstruct object bytes. Use [backup creation with `--files all`](/node/backup-recovery/) and keep copies in separate failure domains.
+
+## Capacity and privacy
+
+There is no automatic garbage collector or operator command to delete confirmed objects. FILE storage has a one-time on-chain fee and no recurring protocol rent, so archive growth is an ongoing operational responsibility.
+
+A CID and provenance record do not confer private access or legal ownership. Treat retrievable file bytes and metadata as visible to the parties that can access the network. Applications storing sensitive data must encrypt it before upload and manage their decryption keys separately.
+
+For the authority boundary behind these procedures, read [protocol storage](/protocol/storage/).

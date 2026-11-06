@@ -1,0 +1,66 @@
+---
+title: Your Riadchain appliances
+description: "The guide to keep with your purchase: connect your machines, create your network and manage it through the apps."
+---
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+Keep this guide with your order information. It takes you from prepared machines
+to a running home or company network, then covers everyday checks and updates.
+
+## Before you start
+
+Have your machines, power supplies, Ethernet cables and an Android phone ready.
+Install the **Riadchain Manager** and **Riadchain** app versions supplied with
+your installation. Set a phone screen lock before pairing or saving keys.
+
+Your machines need prepared Linux storage and Riadchain installed. The customer
+first-boot wizard is still being developed; this guide starts after that local
+installation step. Software-only installations use the same packages and apps:
+choose [direct Debian installation](/node/direct-install/) or a
+[Debian VM on Proxmox](/node/proxmox/). Direct machines use dedicated ZFS storage;
+VMs use a dedicated ext4 guest data disk on the host's storage. These routes
+prepare storage and management identity before pairing; they do not create a
+network or change production eligibility.
+
+## Two apps, two jobs
+
+| App | Use it for |
+| --- | --- |
+| **Riadchain Manager** | Pair machines, prepare and start a network, check status, restart a node, install verified node updates and schedule agreed protocol upgrades. |
+| **Riadchain** | Keep your accounts and recovery phrases, approve the network definition, use applications and send transactions. |
+
+Manager does not hold your recovery phrases or manage account balances. Your
+wallet keeps the owner keys; each machine receives a separate, restricted key
+for operating the network.
+
+## Follow your next step
+
+<CardGrid>
+  <LinkCard title="Connect your machines" description="Plug in, pair each machine and confirm its identity." href="/appliances/connect-machines/" />
+  <LinkCard title="Create your network" description="Follow the file handoff between Manager and your wallet." href="/appliances/first-network/" />
+  <LinkCard title="Use your network" description="Check machines and use the connected wallet." href="/appliances/everyday-use/" />
+  <LinkCard title="Updates and help" description="Install a node update and check unfinished requests safely." href="/appliances/updates-and-help/" />
+</CardGrid>
+
+## The same machine, different participation
+
+A machine is not permanently a “primary” or “recovery” product. Machines in one
+network verify the same history. A machine with an authorized operational signer
+and enough confirmed coins in its owner account can produce blocks under the
+network's succession rules. Others remain replicas.
+
+The current app setup starts the first machine in the saved request as a funded
+producer and the others as unfunded replicas. You can fund additional machine
+owners through the wallet after launch, while retaining enough available funds
+on existing producers. Multiple eligible producers do not create a voting quorum;
+succession determines who can take over when production stops.
+
+Drives are a separate choice. A replica can use less local drive redundancy if
+you accept that risk, but it still needs room for the network's history and files.
+Keep [recovery phrases and data backups](/appliances/everyday-use/#keep-your-backups)
+separately.
+
+Screenshots in this section show the actual Android apps on a disposable
+emulator, before pairing or importing a setup request. A screen being available
+does not mean a machine has connected or an operation has completed.

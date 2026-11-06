@@ -1,0 +1,106 @@
+---
+title: Create a network
+description: Create a private, permissioned Riadchain network for a home or company and start its first validator.
+---
+
+Use this guide when **you are creating a new Riadchain network** for your home or company. You choose its identity, initial validator and starting allocations. Other machines join that same network afterward.
+
+Start with [deployment planning](/node/deployment/) to choose roles, access and recovery for your environment. For packaged installation, use [direct Debian](/node/direct-install/) or a [Proxmox VM](/node/proxmox/), then the [Manager/wallet setup](/appliances/first-network/). The commands below are the manual CLI alternative; do not run them before guided setup on a fresh machine.
+
+If your home or company already has a network, ask its operator for a signed peer invitation and follow [Join a network](/node/operations/#enroll-a-follower). Do not create another genesis file to join an existing network. Wallet and dapp users only need a configured connection; they do not need to run a node.
+
+The commands below bring up the first validator on one machine with a loopback listener. This is the initial setup step, and also a useful separate development network. Before making it available to other machines, configure authenticated [network access](/node/configuration/#authenticate-client-and-peer-traffic), [configure an authenticated follower](/node/operations/#enroll-a-follower), and arrange backups.
+
+## Choose your role
+
+| You want to… | What to do |
+| --- | --- |
+| Create a home or company network | Continue with the first-validator setup below |
+| Add a node to an existing network | Ask the network operator for a [peer invitation](/node/operations/#enroll-a-follower) |
+| Use a wallet or dapp | Get the existing network's RPC endpoint and chain identity; [choose a wallet](/start/choose-your-path/#use-a-wallet-or-dapp) |
+| Develop contracts or integrations | Create a separate test network with its own genesis and data directory |
+
+The `riadchaind` Rust daemon owns consensus, contract execution, persistence, networking and native FILE storage. The companion `riadchain-cli` handles operator commands; the TypeScript SDK provides client integration.
+
+## Prepare the machine
+
+Use a checkout of the Riadchain repository, a working native build toolchain and linker, and Rust installed through `rustup`. The repository's `rust-toolchain.toml` selects the supported compiler. Build from the repository root with the locked dependency graph:
+
+```sh
+cargo build --locked --release -p riadchain-node
+./target/release/riadchaind --version
+```
+
+Provide a separately generated, valid secp256k1 private key in `./keys/validator.key`. The file must contain the 64 hexadecimal characters for that key. Keep it outside version control, restrict it with `chmod 600 ./keys/validator.key` and retain a secure recovery copy. Use your key-management tool to obtain the corresponding lowercase account address. Do not use a published example or test key.
+
+Generate a local configuration template:
+
+```sh
+./target/release/riadchain-cli config init --output ./node.toml --chain-id home-or-company-network
+```
+
+Edit it for this machine. Paths resolve relative to `node.toml`. Use `key_file = "./keys/validator.key"`, `genesis_file = "./network-genesis.json"`, `data_dir = "./data/home-or-company-network"` and `listen = "127.0.0.1:8545"`. The `[genesis]` section is used only when creating the signed artifact:
+
+```toml
+[genesis]
+chain_id = "home-or-company-network"
+timestamp_ms = 1750000000000 # replace with your agreed timestamp
+network_mode = "private"
+file_min_peer_acks = 1 # choose 0 before signing for a standalone archive
+allocations_file = "./genesis-allocations.json"
+```
+
+You also need a new data-directory path and free space for chain history and any uploaded files. Keep the system clock synchronized. This example binds RPC to loopback; [configuration](/node/configuration/) explains authenticated network access.
+
+## Create one signed genesis artifact
+
+Genesis fixes the network identity, initial validator, allocations and initial protocol parameters. Every member of the same chain must use the exact same artifact.
+
+Replace the account placeholder with the address controlled by your key file. The example allocates 10 RDC to that account, providing the minimum production balance plus funds for fees. One RDC is 100,000,000 base units.
+
+```sh
+RIAD_VALIDATOR_ACCOUNT="<your lowercase validator account address>"
+
+cat > ./genesis-allocations.json <<EOF
+[{"address":"$RIAD_VALIDATOR_ACCOUNT","amount_satoshis":"1000000000"}]
+EOF
+
+./target/release/riadchain-cli genesis init --config ./node.toml
+./target/release/riadchain-cli genesis verify --file ./network-genesis.json
+```
+
+Choose a chain ID that identifies your deployment, such as `home-riad` or `company-office`; the example ID is a value to replace. Use a different identity and data directory for a development network.
+
+Keep the reported genesis hash with the artifact. When adding another node, compare this hash over a trusted channel as well as verifying the artifact's signature. A valid signature proves who signed a file; it does not tell you whether that signer is the operator of the network you intended to join.
+
+`genesis init` refuses to overwrite an existing output. The allocations file contains public addresses and integer amounts, never keys or seed phrases.
+
+For recovery, generate and back up an independent rescue wallet before signing genesis, and add its address and allocation to this file. Keep its seed offline. Use a distinct seed for each recovery machine; fund that machine before an outage if you want automatic takeover. Native startup loads a protected raw key file; the offline [`wallet restore` command](/node/backup-recovery/#restore-a-wallet-identity) can derive it from your backed-up seed while checking the expected address.
+
+## Start the validator
+
+```sh
+./target/release/riadchain-cli config check --config ./node.toml
+./target/release/riadchaind --config ./node.toml
+```
+
+Leave this process running and check readiness from another terminal:
+
+```sh
+./target/release/riadchain-cli healthcheck 127.0.0.1:8545
+curl --fail http://127.0.0.1:8545/health
+```
+
+The health check succeeds when the daemon reports `SERVING`. A listening port alone is not a readiness check. Inspect [operations](/node/operations/) if the node is non-serving or the tip stops advancing.
+
+`config check` validates structure and existing referenced artifacts; health checks establish runtime readiness. Persistent startup requires a configured data directory, protected key file and signed genesis. The daemon holds an exclusive directory lock and stores the verified genesis with its canonical history. Reuse that artifact when restarting; changing the chain ID or genesis is not a configuration update for an existing directory.
+
+## Add redundancy before relying on the chain
+
+For a home, this may mean a second computer or server with separate storage. For a company, place followers on separate managed hosts and define who handles enrollment, key custody, backups and fault recovery. Neither deployment model adds a chain admin key: participants agree on protocol upgrades outside the chain.
+
+One validator can run a chain, but a follower on a separate machine provides independent verification, another FILE archive and recovery capacity. An unfunded replica remains an archive node; funding it to the minimum enables automatic succession when ready. [Peer enrollment](/node/operations/#enroll-a-follower) and [succession](/protocol/succession/) explain the distinction.
+
+The default private-network FILE policy requires one peer acknowledgement before a new FILE transaction can be mined. Add an authenticated peer for that policy. For a standalone private archive, set `[genesis].file_min_peer_acks = 0` before `genesis init`; blocks still run every ten seconds and local FILE bytes must verify. This choice does not provide another machine's recovery copy. The signed policy cannot be changed by later TOML edits, and uploading bytes alone does not confirm a FILE transaction. Use [regtest](/node/regtest/) for a separate fast development network.
+
+Before storing important content, create a [verified backup](/node/backup-recovery/) and understand the [FILE archive](/node/file-archive/). Canonical blocks preserve file references, while the separately stored bytes need their own protection.

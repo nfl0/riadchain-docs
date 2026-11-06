@@ -1,0 +1,104 @@
+---
+title: Updates and help
+description: Install a signed node update from your phone and check unfinished operations without losing their saved requests.
+---
+
+## Install a node update
+
+1. Obtain a signed **`.riadupdate`** bundle from the trusted release channel
+   supplied with your installation. Manager has no built-in download catalogue yet.
+2. Open Manager's **Updates**, select the intended paired machine and choose
+   **Import update**. The first preview has not been verified.
+3. Choose **Transfer and verify**. Wait for the machine to confirm its publisher
+   and package. Do not install an unverified preview.
+4. Choose **Review installation**, confirm the machine and version, then
+   authorize installation on the phone.
+5. Use **Check saved install** until the original job, expected package and healthy
+   original network confirm completion. Repeat individually for other machines.
+
+<figure className="app-screen">
+  <img src="/images/appliances/manager-updates.webp" alt="Manager Updates screen before pairing, with the Import update workflow available after choosing a machine." width="720" height="1440" loading="lazy" />
+  <figcaption>Updates are installed per machine. This empty screen does not show an imported or verified bundle.</figcaption>
+</figure>
+
+The phone needs a reachable local or private route to the machine. It can carry
+the downloaded bundle onto an internet-isolated LAN; the machine does not need
+public internet for this transfer. This is not a physically disconnected update.
+
+Node updates do not update Linux, Manager or the wallet. They also do not
+automatically coordinate protocol activation across a network. Those are
+separate procedures.
+
+## Schedule a network upgrade
+
+Installing node software preserves the network's existing activation schedule.
+After every participant has supporting software, agree on the same protocol and
+future block height outside the chain.
+
+1. In Manager's **Maintenance**, select the intended healthy machine and choose
+   **Schedule network upgrade**.
+2. Choose a supported protocol and enter the agreed activation block.
+3. Review the original and proposed schedules, then authenticate on the phone.
+4. Choose **Check saved schedule** until the original job and healthy network
+   confirm that the schedule is installed. Repeat the same agreed activation on
+   every participant before that block is reached.
+
+The node pauses for native history verification and restart. Activation occurs at
+the agreed block, rather than when the schedule is installed. Manager supports
+individual machines; it does not coordinate an automatic network rollout. Existing
+activations cannot be edited through this flow. Fresh appliance networks already
+record their latest starting protocol at block 1.
+
+This workflow has focused source, unit and isolated worker validation. Physical
+phone/appliance upgrade and interruption qualification remains unfinished.
+
+## When an operation is uncertain
+
+If pairing, preparation, start, restart, installation or scheduling loses its reply, keep the
+original saved request. **Check setup outcomes**, **Check saved restart** or
+**Check saved start**, **Check saved install** or **Check saved schedule**
+reconciles what the machine actually recorded.
+
+“Unknown” or “unresolved” does not mean nothing happened. Returning to the app
+does not automatically repeat the operation. Where an explicit retry is offered,
+it uses that original request; do not clear app data, generate fresh keys or
+submit a replacement network.
+
+If the machine has no saved schedule job, **Review saved request** can send that
+original ID after review. If its height or schedule is now stale, the machine
+records a failed outcome before any configuration change. A completed schedule
+remains recognized when later agreed upgrades extend it.
+
+## Common checks
+
+| What you see | What to check |
+| --- | --- |
+| No machine found | Power, Ethernet, phone Wi-Fi and local-network access. Try its known private address; discovery is optional. |
+| Machine unreachable | The private route and saved address. An address change must not replace its trusted identity. |
+| Stopped: insufficient RAM | Increase available machine/VM RAM or its service limit, then review Start node in Maintenance. The management service can remain available while the chain daemon is stopped. |
+| Stopped: service failure | Have the operator inspect the node logs before attempting Start node; starting does not repair corrupted history or replace missing FILE bytes. |
+| Certificate could not be verified | Machine identity and both devices' clocks. Keep verification enabled. |
+| Updates unavailable | Have the installer check the provisioned publisher trust key. |
+| Preparation failed | Read its stated reason and check all original outcomes. A failed job differs from an uncertain or partially installed job. |
+
+## What the current repair controls do
+
+The wallet's **Repair setup file** recreates malformed encrypted setup files
+using the same keys and signed network. It is not general machine recovery.
+Manager's **Import corrected setup** is available only when every original
+preparation failed, nothing was started and the machines remain unconfigured.
+It retains the rejected attempts before saving new preparation requests.
+
+These controls cannot fix a running network, recover missing owner keys or
+restore archive data. For a valid encrypted file rejected by a machine, simply
+exporting the unchanged file again does not fix the underlying problem.
+
+## Ask for help
+
+Use the support contact supplied with your order. Include the app version,
+machine identity, displayed error and saved request reference. Screenshots of
+public status and error messages help. Never send passwords, recovery phrases,
+access tokens or a screenshot of revealed keys.
+
+Release apps protect private screens from screenshots. The images in this guide
+were captured from disposable debug installations without customer secrets.

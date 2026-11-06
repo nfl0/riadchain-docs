@@ -1,0 +1,106 @@
+---
+title: RiadNames
+description: Give machines, robots and AI agents readable names on your home or company network.
+---
+
+RiadNames gives your machines, robots and AI agents names people can recognize:
+`robot.kitchen`, `agent.inventory` or `machine.workshop`. Each record contains a
+display label, an entity type, a destination and a public description.
+
+A namespace belongs to one **chain ID and registry contract address**. Your home
+and your company can use the same readable names in their separate deployments.
+Dot-separated names are flat labels; `robot` does not control `robot.kitchen`.
+
+## Set up your namespace
+
+Deploy `dapps/RiadNames/contracts/name-registry.hl` with the
+[contract studio](/apps/web-wallet-and-ide/#contract-studio-workspace) on your own
+network. Review the deployment and verify its successful execution receipt.
+The registry has no initializer or administrator: the first authenticated account
+to register a vacant name owns that record.
+
+From the repository root:
+
+```sh
+bun install --frozen-lockfile
+bun run names:dev
+```
+
+Use the app's deployment settings to enter your public node URL, actual consensus
+chain ID and deployed registry address. The app checks the chain and deployed code
+before writes. Browser reads need direct read-only RPC access and appropriate
+CORS. Use an HTTPS endpoint when serving the dapp over HTTPS.
+
+Read the directory without a wallet. Connect [Keychain](/apps/keychain/) to manage
+records; its selected network must report the same chain ID. Keep any node bearer
+token in Keychain's network configuration. The dapp receives no provider credentials.
+
+## Register and find names
+
+Choose **Register name**, enter a canonical name, then choose an entity type and
+destination. The app normalizes surrounding whitespace and uppercase names before
+showing the exact name in review.
+
+| Destination | Example use |
+| --- | --- |
+| Account address | Identify an agent's transaction account |
+| Contract address | Find a machine controller or application contract |
+| FILE root | Find a public manual or entity manifest in a node-local archive |
+| Service descriptor | Locate an MQTT, HTTPS, Connect or other service |
+
+Labels accept 1–80 UTF-8 bytes; public descriptions accept up to 512. Never include
+passwords, tokens or private keys. Select a record to inspect its owner, revision,
+status and destination. Search failures remain errors rather than appearing as a
+vacant name.
+
+A record is an **owner-declared identity**, not proof that a robot is genuine,
+an agent is authorized, an endpoint is healthy or FILE bytes are available.
+RiadNames does not execute service links automatically. Verify endpoint identity
+and grant capabilities separately when building an interaction.
+
+## Manage a record
+
+Only the current owner can edit, transfer or revoke an active record. Review the
+action, account, chain, registry, destination, revision, fee and transaction ID
+before continuing to Keychain. Changed record revisions invalidate stale edits.
+
+Ownership transfer changes control of the name record. It does not transfer
+hardware keys or device capabilities. **Revocation is permanent:** resolution
+stops, the historical record stays visible and that exact name can never be reused.
+The registry holds at most 4,096 lifetime registrations, including revoked names.
+
+The app saves the original ID before asking Keychain to submit. A matching
+successful execution receipt confirms a change. A lost response, pending result
+or timeout remains unresolved: use **Check receipt** for that ID before starting
+another write. See [transaction recovery](/developers/transactions/).
+
+## Integrate names in an agent or service
+
+For MCP clients, configure the chain and registry once, then use the bounded
+read-only name tools and resources. See [MCP for agents](/developers/mcp/).
+
+Install the [public SDK](/developers/sdk/) and bind reads to the expected chain
+and registry:
+
+```ts
+import {
+  NameRegistryClient, type EthAddress, type RiadchainProvider,
+} from '@riadchain/sdk/browser';
+
+export async function lookupAgent(
+  provider: RiadchainProvider,
+  registry: EthAddress,
+  chainId: string,
+) {
+  const names = new NameRegistryClient(provider, registry, chainId);
+  const record = await names.get('agent.inventory');
+  if (!record || record.status !== 'active') return null;
+  return record;
+}
+```
+
+Compare the returned owner with the account your application trusts and inspect
+its destination before interacting. `buildNameRegistryCallTx` prepares unsigned
+register/update/transfer/revoke transactions; callers provide live parameters,
+review, signing and durable recovery. Full ABI and deployment details are in the
+[name-service engineering guide](https://github.com/nfl0/riadchain/blob/master/docs/contracts/NAME_SERVICE.md).

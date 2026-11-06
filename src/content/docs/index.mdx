@@ -1,0 +1,53 @@
+---
+title: Riadchain documentation
+description: Set up a private, permissioned blockchain for your home or company, build Charlie contracts, and use Riadchain applications.
+template: splash
+hero:
+  title: A network for your home or company.
+  tagline: Set up a private, permissioned blockchain, keep files on your nodes, and build with Riadchain.
+  actions:
+    - text: Create a network
+      link: /node/quickstart/
+      icon: right-arrow
+    - text: Build a contract
+      link: /build/quickstart/
+      variant: minimal
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+Riadchain is a **private, permissioned blockchain** for homes and companies.
+Each deployment has its own network identity, trusted participants and applications.
+A Rust node provides succession-based consensus, the Charlie contract runtime,
+and native FILE storage. The project is in active development; these guides use
+networks you operate and verified contract addresses, rather than a shared public mainnet.
+
+<CardGrid>
+  <LinkCard title="Start here" description="Understand the trust model and choose a path through the ecosystem." href="/start/what-is-riadchain/" />
+  <LinkCard title="Your appliances" description="Received your machines? Connect them, set up through the apps, and keep your network healthy." href="/appliances/" />
+  <LinkCard title="Create or join a network" description="Choose your role, set up a home or company network, and connect additional nodes." href="/node/quickstart/" />
+  <LinkCard title="Build contracts" description="Write high-level contracts, understand their ABI, and execute them with Charlie." href="/build/quickstart/" />
+  <LinkCard title="SDK and RPC" description="Read chain state, encode typed arguments, and track transactions through execution." href="/developers/sdk/" />
+  <LinkCard title="Wallets and apps" description="Manage keys, review transactions, recover pending work, and connect applications." href="/apps/native-wallet/" />
+  <LinkCard title="Protocol reference" description="Explore succession, protocol upgrades, deterministic execution, fees, and storage." href="/protocol/overview/" />
+</CardGrid>
+
+## How the network fits together
+
+Wallets and applications submit signed transactions to a Rust producer. Followers
+verify the same signed history, and each node keeps its own FILE archive. Canonical
+blocks record file references; verified transfers replicate the corresponding bytes.
+
+## Store files with your node
+
+FILE transactions commit a content identifier and metadata to the chain. Your
+node stores the corresponding bytes in its local archive and can serve and
+replicate them. Keeping canonical history and keeping those bytes available are
+different responsibilities. Learn how to [operate the FILE archive](/node/file-archive/)
+and [upload files through the SDK](/developers/files/).
+
+## Give your machines readable names
+
+[RiadNames](/apps/names/) maps names such as `robot.kitchen` and `agent.inventory`
+to owner-controlled profiles and destinations on your home or company chain.
+Browse your namespace, register an entity, and review changes through Keychain.

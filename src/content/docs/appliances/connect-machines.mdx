@@ -1,0 +1,54 @@
+---
+title: Connect your machines
+description: Plug in your prepared Riadchain appliances and pair each one with Manager.
+---
+
+## 1. Connect power and Ethernet
+
+Connect each machine to power and your router or switch with an Ethernet cable.
+Connect your phone to the same local network. Keep the machines powered while
+setup is in progress.
+
+For machines in different locations, arrange a reachable private network route
+first. Discovery finds nearby machines; it does not provide a remote connection
+between separate homes or offices.
+
+## 2. Open Riadchain Manager
+
+On **Machines**, choose **Pair a machine**. Select a discovered machine, or
+choose **Enter an IP address** using its local address.
+
+<figure className="app-screen">
+  <img src="/images/appliances/manager-machines.webp" alt="Riadchain Manager Machines screen before any machine is paired, with the Pair a machine button." width="720" height="1440" loading="lazy" />
+  <figcaption>The Machines screen is available before pairing. Connected machines appear after authentication.</figcaption>
+</figure>
+
+## 3. Authenticate the machine
+
+Enter its **Setup password**, obtained during its trusted local installation.
+This is a one-time claim password, separate from the Linux administrator
+password and your wallet recovery phrases. Each installation has its own.
+
+<figure className="app-screen">
+  <img src="/images/appliances/manager-pairing.webp" alt="Manager pairing dialog with empty Machine IP address and Setup password fields." width="720" height="1440" loading="lazy" />
+  <figcaption>Enter the installation's password in Manager. Never paste a wallet phrase here.</figcaption>
+</figure>
+
+Choose **Authenticate** and complete any phone unlock prompt. Successful pairing
+consumes the installation's claim password; Manager saves separate management
+access on your phone. Rebooting the machine does not reopen claiming.
+
+If no password is available, have the installer complete local provisioning.
+The friendly customer first-boot screen is not part of the current release; do
+not reset a configured machine to make it discoverable again.
+
+## 4. Repeat and check
+
+Pair each machine you will use. Compare its displayed identity with the machine
+you intended to add, then choose **Refresh status**. An unconfigured machine is
+ready for network setup only when its storage checks pass.
+
+If a pairing reply is lost, use **Continue pairing** with the saved request.
+Clearing app data or starting a new claim can lose the access needed to check it.
+
+Next: [create your network](/appliances/first-network/).

@@ -1,0 +1,111 @@
+---
+title: "Compile your first contract"
+description: "Compile a small high-level contract to Charlie locally, inspect its entry points, and understand what deployment adds."
+---
+
+Riadchain contracts are written in a small high-level language and compiled to
+Charlie, the deterministic language executed by the Rust node. Start with a local
+compilation: it needs no wallet, funds or running network.
+
+The CLI below emits Charlie, not an ABI file or a deployment. ABI extraction is
+separate source-based tooling. A `constructor` becomes public `init`; deployment
+does not call it automatically or enforce one-time initialization.
+
+## Set up the workspace
+
+The compiler currently lives in the private Riadchain repository; source access
+is required for this guide. Use Bun with the
+repository lockfile; CI currently pins Bun 1.3.11.
+
+```sh
+git clone https://github.com/nfl0/riadchain.git
+cd riadchain
+bun install --frozen-lockfile
+```
+
+These examples assume commands run from the repository root. Rust is not needed
+to emit Charlie. Native execution tests need the repository's Rust toolchain and
+a current native bridge, which is a separate step.
+
+## Write a bounded counter
+
+Save this as `/tmp/riadchain-counter.hl`:
+
+```text
+contract Counter {
+  storage count: u64
+  event CountChanged(indexed sender: address, count: u64)
+
+  view method get() -> u64 {
+    let current = storage.count
+    if (current == null) { return 0 }
+    return current
+  }
+
+  method add(by: u64) -> u64 {
+    require(by > 0, "positive increment required")
+    require(by <= 100, "increment too large")
+    let mut current = storage.count
+    if (current == null) { current = 0 }
+    require(current + by <= 1000000, "counter limit reached")
+    storage.count = current + by
+    emit CountChanged(ctx.sender, storage.count)
+    return storage.count
+  }
+}
+```
+
+Unset storage is `null`, so the example handles the first call explicitly. This
+counter deliberately lets every caller increment it. A contract controlling
+funds or equipment needs its own authorization rules.
+
+```sh
+bun tools/highlevel/compile-file.ts \
+  /tmp/riadchain-counter.hl /tmp/riadchain-counter.charlie
+```
+
+The command writes Charlie source and prints its byte length. Open the output:
+its `main` dispatcher selects `get` or `add` by the `method` field and checks the
+typed parameters before invoking the selected method.
+
+For a compiler integration, use the source API:
+
+```ts
+import { compileHighLevelContract } from './tools/highlevel/compiler.ts';
+
+const source = await Bun.file('/tmp/riadchain-counter.hl').text();
+const code = compileHighLevelContract(source);
+console.log(code);
+```
+
+## Understand the call data
+
+The `add` method takes named arguments. Its logical input is `{ by: 5n }`, with
+`add` supplied as the method selector. For a signed Charlie call, use
+[contract argument encoding](/developers/contract-arguments/) before building the
+transaction. For a public read, `provider.callView(address, 'get', {})` uses the
+view RPC codec instead.
+
+Compilation produces code, not a deployed address. The deploy builder needs the
+actual deployer, salt, gas limit, live chain identity and funded inputs. Read
+[SDK setup](/developers/sdk/) and [transaction flow](/developers/transactions/)
+before adding signing or deployment. There is no universal deployed Counter
+address in this guide.
+
+## Validate the boundary you changed
+
+A local compiler emission check can run one focused test without executing a
+contract or starting a network:
+
+```sh
+bun test tests/bun/unit/highlevel-compiler.unit.test.ts \
+  --test-name-pattern 'constructor sugar'
+```
+
+Compilation alone does not prove execution or host behavior. A contract regression
+should also exercise the actual generated code in the current Rust runtime. A
+client regression should cover builder → protobuf → native execution, especially
+when arguments contain integers. The web IDE offers a local sandbox, with the
+[native boundary limitations](/build/charlie-and-native-tokens/) described below.
+
+Source: [compiler and local CLI](https://github.com/nfl0/riadchain/tree/master/tools/highlevel).

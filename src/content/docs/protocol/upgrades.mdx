@@ -1,0 +1,119 @@
+---
+title: Protocol upgrades
+description: Coordinate protocol activation outside the chain, independently of software releases.
+---
+
+Riadchain networks agree on upgrades outside the chain. There are no on-chain proposals, votes, parameter patches or chain admin keys. Contract ownership and account capabilities remain separate concerns.
+
+## Genesis settings
+
+Signed genesis commits the network mode, initial producer, allocations and bounded protocol parameters. Private networks use ten-second blocks. Disposable regtest networks use 100 ms blocks. A local flag cannot change the mode or cadence of an existing chain.
+
+Fee, gas, VM, FILE and succession settings are immutable under protocols 1, 2 and 3. Read them with `NodeService.GetProtocolParams` or SDK `getProtocolParams()`. A later protocol implementation can define a different policy; editing a local file does not change committed history.
+
+## Independent protocol IDs
+
+Every block carries a numeric `protocolVersion` covered by its canonical hash and validator signature. The current implementation supports **protocols 1, 2 and 3**. Package versions identify software releases; they are not consensus IDs. Several software releases can implement the same protocol.
+
+Participants install software implementing the agreed rules and supply the same activation schedule to every producer and recovery node:
+
+```json
+[
+  { "target_protocol_version": 2, "activation_height": 1 },
+  { "target_protocol_version": 3, "activation_height": 1000 }
+]
+```
+
+This is an illustrative schedule, not a height to apply to an existing network.
+Preserve that network's earlier entries and agree on a future height above its
+tip. Reference the public JSON file with
+`protocol_upgrades_file = "./upgrades.json"` in each node's TOML configuration.
+Offline `riadchain-cli` replay and backup commands can use the same `--config` or
+explicit `--protocol-upgrades <path>`. Schedule-file fields use the snake_case
+names above; SDK protocol-info fields use camelCase. Entries must have increasing
+heights and increasing protocol IDs; activation at genesis is not allowed.
+
+Protocol 2 adds bounded contract-storage pages and record-field deletion.
+Protocol 3 adds typed hashing, strict byte codecs and authenticated chain/genesis
+execution context, supporting the implemented [application checkpoint foundation](/build/application-checkpoints/).
+These additions do not change stored-value or block formats. A node can run before
+a scheduled unknown ID, but refuses to produce or accept the activation block
+until it supports those rules. It never downloads or executes software from the
+schedule.
+
+## Execution at an activation
+
+Install supporting software before the agreed height. The node continues using
+older rules until that height, and retains their semantics for historical replay.
+Riadchain uses one Charlie VM: blocks, nested calls and due scheduled calls all
+execute under the rules selected for that block. Contract views use the current
+tip's rules; admission, simulation and source validation use the next block's rules.
+
+Compiled programs are a bounded RAM cache. The cache clears when the requested
+rules change and rebuilds lazily, including during replay. This does not rewrite
+contract storage. Ordinary feature additions can use explicit activation gates;
+a future change to state or canonical formats still needs its own reviewed design.
+Genesis uses protocol 1. An empty schedule continues using protocol 1. For a new
+network that should use protocol 3 immediately, record a protocol 3 activation at
+height 1. Appliance Manager records the installed binary's latest supported
+protocol at height 1 and carries that starting schedule through wallet review
+and preparation.
+Native CLI operators still supply the explicit schedule. The binary does not
+silently rewrite schedules when installed.
+
+## Protocol 2 contract features
+
+`storageScan(prefix, after, limit)` reads an ordered page of the executing
+contract's slots, including the latest writes and deletions staged in that call.
+`valueDelete(record, key)` removes a record field instead of retaining a null
+placeholder. Pages are bounded by count, encoded bytes and gas. Protocol 2 also
+retains consumed interpreter and child gas on host failure; failed calls still
+roll back their effects. See [contract resource practices](/build/resource-practices/).
+
+## Protocol 3 application features
+
+`typedHash(domain, value)` provides domain-separated canonical typed digests;
+the byte hash and UTF-8/Base64 codecs reject malformed or noncanonical input.
+`ctx.chainId` and `ctx.genesisHash` come from authenticated chain state and follow
+direct, nested and scheduled execution contexts. Existing protocol-1 and -2
+semantics remain available for historical execution.
+
+See [application checkpoints](/build/application-checkpoints/) for exact encoding
+rules, bounded recoverable payloads and separate L1 message execution. Snapshot
+[read sessions](/developers/rpc/#snapshot-pinned-contract-reads) are a bounded,
+authenticated operational RPC feature independent of consensus activation.
+
+## Inspect readiness
+
+`NodeService.GetProtocolInfo` and SDK `getProtocolInfo()` return the active protocol, supported IDs, the next block's protocol, compatibility for that next block and the complete configured schedule. The Explorer exposes these on its Protocol page. `riadchain-cli protocol capabilities`
+reports installed binary support without requiring configured node state.
+
+Manager's **Maintenance → Schedule network upgrade** adds a supported protocol at
+an agreed future block after review and phone authentication. The installed CLI
+must advertise `future_protocol_upgrade_check` in its `operational_features`.
+The worker stops the daemon, runs the bounded native history/schedule check,
+installs a forward-only schedule and restarts the same chain through normal
+validated startup. Apply the same agreement to every participant; this is an
+individual-machine workflow, not network governance.
+
+CLI operators can use the same check while their daemon is stopped:
+
+```sh
+riadchain-cli --config /etc/riadchain/node.toml protocol check-upgrade \
+  --protocol-upgrades /absolute/path/proposed-upgrades.json
+```
+
+This read-only check validates signed genesis, canonical record integrity and
+historical protocol IDs under the current schedule. The proposal must preserve
+every earlier entry exactly and append activations above the stopped canonical
+tip. It reports the checked identity, tip and schedules with
+`executionReplayed: false`; it neither installs the schedule nor starts the node.
+It does not re-execute historical transactions, verify their state effects or
+scan FILE archive bytes. Full `replay verify` remains a separate audit/recovery
+operation. A strictly future addition does not require a full execution replay
+because it cannot change historical rule selection.
+
+Before an activation, back up canonical history, FILE bytes and the public schedule, verify the release, install it on producers and recovery machines, and compare schedules. The schedule is supplied separately during replay and backup verification; keep it with the recovery kit.
+
+Startup checks historical block IDs even when using checkpoints. Moving an already activated height or changing its ID fails validation. Manager accepts forward additions only. Any deliberate manual change to a future
+activation requires agreement and matching schedules before that height. See [node operations](/node/operations/#plan-software-changes) and [backups](/node/backup-recovery/).

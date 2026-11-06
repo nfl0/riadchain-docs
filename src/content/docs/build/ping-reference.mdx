@@ -1,0 +1,106 @@
+---
+title: "Ping reference dapp"
+description: "Modular local monitoring, delegated application checkpoints and native FILE history on a private Riadchain network."
+---
+
+Ping combines local connectivity checks, explicit device discovery, decoy metadata
+and phone alerts with recoverable chain records. Its version-2 source lives in
+`dapps/Ping/` and requires **active Protocol 3**. It illustrates an application
+runtime with narrowly delegated publication; it is not another consensus engine
+or a proof that measurements are truthful.
+
+## Local monitoring and immediate alerts
+
+One monitoring host runs independent, bounded programs:
+
+| Program | Observations |
+| --- | --- |
+| Connectivity | Configured ICMP, DNS and HTTPS checks, normally every 15 seconds |
+| Discovery | Host responses on explicitly authorized private subnets |
+| Decoys | Whitelisted SSH/HTTP interaction metadata, excluding attempted credentials |
+| Notifications | Durable ntfy publishing attempts and service acceptance |
+
+The monitor atomically saves its current snapshot, cursors and contiguous
+observation journal in SQLite. Detailed monitoring records are **plaintext** for
+private deployments. Keys, RPC tokens, raw decoy logs and attempted credentials
+must not enter the journal, dashboard assets or native FILE archives.
+
+Local incidents and ntfy attempts continue when the chain or publisher is
+unavailable. Service acceptance does not establish phone delivery. Discovery does
+not authenticate devices; an unfamiliar address is not proof of intrusion. Ping
+performs no packet capture, general flow analysis or automatic firewall blocking.
+
+## Two-minute checkpoints and FILE history
+
+A separate publisher submits selected current state approximately every two
+minutes. The contract checks its configured publisher, configuration epoch,
+contiguous record range and previous commitment. Typed hashes bind the payload
+to the authenticated chain, genesis and contract identity. Snapshot-pinned reads
+provide a consistent contract view while preparing a submission.
+
+The contract keeps compact current metadata and checkpoint/archive heads rather
+than duplicating the entire observation history in active state. Acceptance emits
+`CheckpointAccepted`; confirmed FILE references emit `ArchivePublished`. These are
+application records, separate from a node's derived persistence checkpoints.
+
+Detailed observations become deterministic gzip JSON Lines archives in **native
+FILE storage**. A window seals when its oldest record is about fifteen minutes
+old or a full 1,000-record part is ready. Bounded parts drain consecutively after
+matching receipts; a recent short tail waits. Each archive is limited to 4 MiB
+compressed and 32 MiB expanded. The publisher confirms the original FILE upload
+and verifies CID/size before publishing its contract reference.
+
+Retrieve bytes with the SDK and use `checkpoints/archive.ts` to verify scope,
+hashes, ranges and bounded decoding. Checkpoints recover selected state; confirmed
+FILE archives recover detailed observations. A CID or receipt alone does not prove
+that a node currently has the bytes. Newer unpublished records remain local.
+History still grows on disk; see [contract resource practices](/build/resource-practices/).
+
+## Administration and limited publication
+
+Deployment pins the bootstrap account and initial admin NFT recipient before
+compilation. Initialization cannot be claimed by an arbitrary first caller.
+The current NFT holder controls publisher selection, publication pause and program
+settings. Existing contract administration does not grant chain governance.
+
+The publisher receives a native capability scoped to one contract and the methods
+`acceptCheckpoint`, `publishArchive` and `FILE`. It has finite fee escrow, FILE
+allowance, a height expiry and at most one call per block. It receives no owner
+spending key. Expiry, revocation or insufficient resources prevent new publication;
+funding is manual. Dashboard reviews distinguish fee top-ups from FILE allowance
+and expiry, and require the appropriate wallet signature.
+
+The authenticated dashboard uses admin NFT ownership. Its monitor holds no node
+RPC credential or signing key; chain reads use the publisher's restricted read
+relay. Keep the publisher key, node bearer credential and relay token in separate
+protected server-side files. These files are plaintext custody protected by local
+permissions, not encrypted backups.
+
+Every signed original and FILE payload is retained before a broadcast-capable
+operation. Lost responses remain unresolved. Reconcile the original receipt;
+timeout or wall-clock age does not authorize a replacement. See
+[transaction outcomes and recovery](/developers/transactions/).
+
+## Run an isolated reference
+
+Install the [monorepo dependencies](/developers/sdk/#develop-in-the-monorepo)
+and use a current native binary with
+the [funded regtest launcher](/node/regtest/):
+
+```sh
+bun run regtest:start
+bun dapps/Ping/scripts/deploy.ts --config "$PWD/.tmp/regtest/deployment.json"
+bun dapps/Ping/scripts/deploy.ts --config "$PWD/.tmp/regtest/deployment.json" --apply
+```
+
+The launcher produces a genesis-pinned version-2 deployment input with explicit
+admin, fee and FILE limits. The plan command prepares local identities and its
+journal without broadcasting. `--apply` spends disposable regtest funds and writes
+a manifest only after matching successful execution receipts.
+
+See the [Ping README](https://github.com/nfl0/riadchain/blob/master/dapps/Ping/README.md)
+for builds, configuration and qualification. Historical private deployment records
+from October 21–22, 2026 describe an earlier revision; this v2 source guide does
+not establish that those services have been replaced. A live installation requires
+its own authorized deployment, protected configuration, verified cutover and admin
+NFT handover. No universal live contract address is supplied.
