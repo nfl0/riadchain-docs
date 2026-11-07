@@ -1,53 +1,41 @@
 ---
 title: Riadchain documentation
-description: Set up a private, permissioned blockchain for your home or company, build Charlie contracts, and use Riadchain applications.
-template: splash
+description: Practical guides for building applications and operating private, permissioned Riadchain networks.
+tableOfContents: false
 hero:
-  title: A network for your home or company.
-  tagline: Set up a private, permissioned blockchain, keep files on your nodes, and build with Riadchain.
-  actions:
-    - text: Create a network
-      link: /node/quickstart/
-      icon: right-arrow
-    - text: Build a contract
-      link: /build/quickstart/
-      variant: minimal
+  title: Build with Riadchain.
+  tagline: Practical guides for your applications and the networks behind them. Start with your next task.
 ---
 
-import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+import { CardGrid, Code, LinkButton, LinkCard } from '@astrojs/starlight/components';
 
-Riadchain is a **private, permissioned blockchain** for homes and companies.
-Each deployment has its own network identity, trusted participants and applications.
-A Rust node provides succession-based consensus, the Charlie contract runtime,
-and native FILE storage. The project is in active development; these guides use
-networks you operate and verified contract addresses, rather than a shared public mainnet.
+<div class="docs-landing not-content">
+  <section class="docs-paths" aria-labelledby="paths-title">
+    <div class="landing-heading"><p class="landing-eyebrow">Find your starting point</p><h2 id="paths-title">What would you like to do?</h2></div>
+    <CardGrid>
+      <LinkCard title="Build an application" description="Connect with the SDK, read shared state and submit signed actions." href="/developers/sdk/" />
+      <LinkCard title="Operate a network" description="Plan and run a private network for your home or company." href="/node/deployment/" />
+      <LinkCard title="Set up your appliances" description="Connect your prepared machines and create your first network." href="/appliances/" />
+      <LinkCard title="Use wallets and apps" description="Choose a client and connect to a network you’re allowed to use." href="/apps/native-wallet/" />
+    </CardGrid>
+  </section>
 
-<CardGrid>
-  <LinkCard title="Start here" description="Understand the trust model and choose a path through the ecosystem." href="/start/what-is-riadchain/" />
-  <LinkCard title="Your appliances" description="Received your machines? Connect them, set up through the apps, and keep your network healthy." href="/appliances/" />
-  <LinkCard title="Create or join a network" description="Choose your role, set up a home or company network, and connect additional nodes." href="/node/quickstart/" />
-  <LinkCard title="Build contracts" description="Write high-level contracts, understand their ABI, and execute them with Charlie." href="/build/quickstart/" />
-  <LinkCard title="SDK and RPC" description="Read chain state, encode typed arguments, and track transactions through execution." href="/developers/sdk/" />
-  <LinkCard title="Wallets and apps" description="Manage keys, review transactions, recover pending work, and connect applications." href="/apps/native-wallet/" />
-  <LinkCard title="Protocol reference" description="Explore succession, protocol upgrades, deterministic execution, fees, and storage." href="/protocol/overview/" />
-</CardGrid>
+  <section class="docs-sdk" aria-labelledby="sdk-title">
+    <div class="sdk-copy"><p class="landing-eyebrow">JavaScript &amp; TypeScript</p><h2 id="sdk-title">Start with the SDK.</h2><p>Connect from a browser or Node.js. The guide takes you from installation to your first read.</p><LinkButton href="/developers/sdk/" icon="right-arrow">Open the SDK guide</LinkButton></div>
+    <div class="sdk-command"><span>Install in your application</span><Code code="npm install @riadchain/sdk" lang="sh" /></div>
+  </section>
 
-## How the network fits together
+  <section class="docs-topics" aria-labelledby="topics-title">
+    <div class="landing-heading"><p class="landing-eyebrow">Explore the platform</p><h2 id="topics-title">Go further.</h2></div>
+    <CardGrid>
+      <LinkCard title="Write Charlie contracts" description="Define application rules and shared state. The compiler guide requires source repository access." href="/build/quickstart/" />
+      <LinkCard title="Work with native FILE storage" description="Upload and retrieve files. The chain records content references; your nodes retain the verified bytes." href="/developers/files/" />
+      <LinkCard title="Connect agents and assistants" description="Use MCP to query state, prepare actions and work within explicit permissions." href="/developers/mcp/" />
+      <LinkCard title="Understand the protocol" description="Learn how participants, signed history and deterministic execution fit together." href="/protocol/overview/" />
+    </CardGrid>
+  </section>
 
-Wallets and applications submit signed transactions to a Rust producer. Followers
-verify the same signed history, and each node keeps its own FILE archive. Canonical
-blocks record file references; verified transfers replicate the corresponding bytes.
+  <div class="docs-help"><div><h2>New to Riadchain?</h2><p>Riadchain is a private, permissioned blockchain for homes and companies.</p></div><LinkButton href="/start/what-is-riadchain/" variant="secondary" icon="right-arrow">Get the overview</LinkButton></div>
 
-## Store files with your node
-
-FILE transactions commit a content identifier and metadata to the chain. Your
-node stores the corresponding bytes in its local archive and can serve and
-replicate them. Keeping canonical history and keeping those bytes available are
-different responsibilities. Learn how to [operate the FILE archive](/node/file-archive/)
-and [upload files through the SDK](/developers/files/).
-
-## Give your machines readable names
-
-[RiadNames](/apps/names/) maps names such as `robot.kitchen` and `agent.inventory`
-to owner-controlled profiles and destinations on your home or company chain.
-Browse your namespace, register an entity, and review changes through Keychain.
+  <div class="landing-footer"><a href="/start/choose-your-path/">Find the right guide for your role <span aria-hidden="true">→</span></a><a href="https://riadchain.com/" target="_blank" rel="noopener noreferrer">Visit riadchain.com <span aria-hidden="true">↗</span></a></div>
+</div>

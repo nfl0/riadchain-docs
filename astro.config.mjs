@@ -8,6 +8,12 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'Riadchain',
+      logo: {
+        light: './public/riadchain-mark.svg',
+        dark: './public/riadchain-mark-light.svg',
+        alt: '',
+        replacesTitle: false,
+      },
       description: 'Guides for Riadchain nodes, smart contracts, wallets and applications.',
       favicon: '/favicon.svg',
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/nfl0/riadchain-docs' }],

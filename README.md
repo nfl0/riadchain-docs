@@ -26,6 +26,12 @@ files in `src/content/docs/`; static assets are in `public/`. Add new pages to t
 explicit sidebar in `astro.config.mjs`. See [CONTRIBUTING.md](CONTRIBUTING.md) for
 content and screenshot guidance.
 
+The landing page starts with reader tasks, then SDK installation and platform
+guides. Shared reading styles live in `src/styles/theme.css`: warm light surfaces,
+a complete dark theme, clear current-page navigation and readable code and tables.
+Keep Starlight’s native search, sidebar, table of contents, copy controls and page
+navigation instead of replacing them with custom client code.
+
 ## Verify
 
 ```sh
