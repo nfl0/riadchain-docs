@@ -16,6 +16,9 @@ FILE storage and succession. Private networks use ten-second blocks.
 Set these choices before creating the network and retain the signed definition
 with your recovery material.
 
+When the node release supports scheduling, participants can agree to activate
+future rules on the same chain. See [protocol upgrades](/protocol/upgrades/).
+
 ## Contract execution
 
 Charlie gives contracts bounded storage scans, record-field deletion, canonical

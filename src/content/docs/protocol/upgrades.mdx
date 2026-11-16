@@ -1,0 +1,66 @@
+---
+title: Protocol upgrades
+description: Coordinate new consensus rules at an agreed block height and preserve verifiable history.
+---
+
+A network upgrade (NU) changes the rules a node uses to validate and execute
+blocks. Operators agree outside the chain on the rule set and its activation
+height. They install compatible software and configure every participating node
+with the same schedule. There is no chain admin key or on-chain vote. Contracts
+have their own [authorization rules](/build/abi-and-guards/).
+
+## Independent protocol IDs
+
+In releases that support scheduled upgrades, each rule set has a numeric protocol
+ID. The block commits that ID in its signed history. Package versions identify
+node software, and multiple releases can support the same rules. Installing a
+package leaves the configured schedule in effect.
+
+Check the release notes for scheduler support and the supported IDs. A fresh
+post-quantum network starts with the rules shipped for its
+[signed genesis](/protocol/genesis/). The initial post-quantum node release
+does not implement a height-based upgrade scheduler.
+
+## Execution at an activation
+
+The new rules apply starting with the activation block. Historical blocks replay
+under the rules selected for their original heights. A node that reaches an
+activation without support for the configured ID stops at that boundary.
+
+Charlie execution uses the enclosing block's rules, including nested and due
+scheduled calls. Contract views use the current tip's rules. Admission and
+simulation use the next block's rules, so their readiness can change one block
+before the first block under the new rules.
+
+## Schedule a supported upgrade
+
+1. Confirm support on every producer and recovery node. Verify a backup of signed
+   history, FILE bytes, and the current public schedule.
+2. Agree on a height above the chain tip. Keep existing schedule entries and
+   append the new `target_protocol_version` and `activation_height` to the JSON
+   file. Protocol IDs and heights must increase.
+3. Where available, validate the proposed schedule on each stopped node before
+   installing it. Point each node's TOML `protocol_upgrades_file` to the same
+   reviewed schedule. Bring the nodes back online and verify their schedules
+   before activation. Keep the agreed schedule with the recovery kit.
+4. At activation, confirm that the nodes accept the same first block under the
+   new rules and continue from its signed hash.
+
+```sh
+riadchain-cli --config /etc/riadchain/node.toml protocol check-upgrade \
+  --protocol-upgrades /absolute/path/proposed-upgrades.json
+```
+
+On releases that expose this command, the check verifies signed genesis and
+historical block IDs against the existing schedule and checks that the proposal
+only adds future entries. It reads signed history without re-executing
+transactions or checking FILE bytes. Keep [full replay and archive verification](/node/backup-recovery/)
+for recovery and integrity checks.
+
+## Inspect readiness
+
+On releases with the scheduler, `NodeService.GetProtocolInfo` and SDK
+`getProtocolInfo()` report the active ID, supported IDs, next-block compatibility
+and configured schedule. `riadchain-cli protocol capabilities` reports the local
+binary's support before maintenance. Manager exposes **Schedule network upgrade**
+when the appliance supports it. Apply and verify the agreement on every machine.
