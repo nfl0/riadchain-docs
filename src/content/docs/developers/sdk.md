@@ -110,7 +110,7 @@ identity nor freshness.
 
 The browser and shared SDK entry points export `typedHash`,
 `encodeCanonicalContractValue`, `bytesSha256`, `bytesKeccak256`, `utf8ToHex`,
-`hexToUtf8`, `base64ToHex` and `hexToBase64`. These match protocol 3's canonical
+`hexToUtf8`, `base64ToHex` and `hexToBase64`. These match Charlie's canonical
 typed hashing and strict byte operations. They do not implement an application's
 signature, nonce or authorization policy. Use verified chain/genesis and contract
 identity in signed envelopes; do not substitute ordinary JSON hashing.

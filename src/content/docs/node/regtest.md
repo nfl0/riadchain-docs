@@ -66,7 +66,7 @@ bun run regtest:start
 ```
 
 The default state directory is the ignored `.tmp/regtest/`. Repeated starts reuse
-the wallet, signed genesis, RPC credential, port, protocol schedule and canonical
+the wallet, signed genesis, RPC credential, port and canonical
 history, or report the already running daemon. `stop` verifies the exact saved
 process before sending SIGTERM and waits for draining. It never kills a different
 listener or forces termination.
@@ -95,8 +95,6 @@ genesis or credentials here.
 
 Mode and cadence are authenticated by genesis. No daemon flag can turn a private
 chain into regtest or bypass its authorization, funding or execution limits.
-Keep local fixtures separate from established networks. For activation tests,
-use [participant-agreed protocol schedules](/protocol/upgrades/); installing a new
-binary does not silently replace an existing chain's schedule.
+Keep local fixtures separate from established networks.
 
 Source: [local launcher and its focused native fixture](https://github.com/nfl0/riadchain/tree/master/tools/regtest).

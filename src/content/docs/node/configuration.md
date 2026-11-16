@@ -26,7 +26,6 @@ checkpoint_interval_blocks = 2048
 p2p_allowed_addresses = []
 # rpc_token_file = "./secrets/rpc-token"
 # p2p_shared_secret_file = "./secrets/p2p-secret"
-# protocol_upgrades_file = "./upgrades.json"
 ```
 
 Configuration is strict UTF-8 TOML, limited to 64 KiB; unknown fields are rejected. Relative paths resolve against the directory containing `node.toml`. Public peer addresses and endpoints may appear in TOML. Private keys, RPC tokens and P2P secrets must live in protected files referenced by their paths.
@@ -44,7 +43,6 @@ Configuration is strict UTF-8 TOML, limited to 64 KiB; unknown fields are reject
 | `rpc_token_file` | Protected client bearer-token file |
 | `p2p_allowed_addresses` | Array of admitted public peer account addresses |
 | `p2p_shared_secret_file` | Protected shared peer HMAC-secret file |
-| `protocol_upgrades_file` | Participant-agreed public JSON activation schedule |
 
 Credential files must be regular UTF-8 files, at most 4,096 bytes. Restrict them to mode `600` on Unix and keep them out of source control, images and support bundles. A template does not create signing keys or authenticate a network for you.
 

@@ -9,7 +9,7 @@ phone. Prepare Debian, dedicated storage and Manager through the
 first. Leave node configuration and history absent until this setup completes.
 
 The CLI currently covers pairing and network setup. General wallet transactions,
-node updates, protocol schedules, joining and archive restoration are separate
+node updates, joining and archive restoration are separate
 work. For a node operated entirely without Manager, use the existing
 [native CLI and configuration](/node/quickstart/).
 
@@ -124,7 +124,7 @@ bun tools/cli/riadchain-wallet.ts setup sign \
 ```
 
 Review the chain identity, intended machine, owner allocations, operational signer,
-protocol schedule and full genesis hash. The wallet checks the prepared definition
+network settings and full genesis hash. The wallet checks the prepared definition
 against its original request and plan before asking you to enter that hash.
 Automation can supply the exact reviewed hash with `--approve-genesis-hash`.
 

@@ -56,8 +56,8 @@ machines does not create Byzantine quorum finality.
 - **Wallet and application users** connect to an endpoint supplied by the operator.
   They do not need to create genesis or run a daemon.
 
-There is no chain admin key. Participants agree on protocol upgrades outside
-the chain; application ownership and permissions are separate contract concerns.
+Signed genesis defines the network’s rules. Application owners manage permissions
+within their own contracts.
 
 ## Decide how machines connect
 

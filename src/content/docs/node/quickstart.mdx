@@ -97,7 +97,7 @@ The health check succeeds when the daemon reports `SERVING`. A listening port al
 
 ## Add redundancy before relying on the chain
 
-For a home, this may mean a second computer or server with separate storage. For a company, place followers on separate managed hosts and define who handles enrollment, key custody, backups and fault recovery. Neither deployment model adds a chain admin key: participants agree on protocol upgrades outside the chain.
+For a home, this may mean a second computer or server with separate storage. For a company, place followers on separate managed hosts and define who handles enrollment, key custody, backups and fault recovery. Keep a copy of the signed genesis with the recovery material in either deployment.
 
 One validator can run a chain, but a follower on a separate machine provides independent verification, another FILE archive and recovery capacity. An unfunded replica remains an archive node; funding it to the minimum enables automatic succession when ready. [Peer enrollment](/node/operations/#enroll-a-follower) and [succession](/protocol/succession/) explain the distinction.
 

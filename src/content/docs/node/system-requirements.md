@@ -92,7 +92,7 @@ customer release.
 On **2026-10-13**, an installed Debian 13 amd64 Proxmox VM ran development node
 package `2.0.0-29~trixie` with **one vCPU, 1 GiB fixed guest RAM and no swap**.
 That package kept active state in memory. Its private,
-ten-second protocol-2 chain retained 20,000 UTXOs and 4,096 distinct 8,192-byte
+ten-second chain retained 20,000 UTXOs and 4,096 distinct 8,192-byte
 contract values: 32 MiB of value payload. Manager was stopped during measurement.
 
 | Measurement | Observed result |
@@ -111,7 +111,7 @@ Stopped replay verified 588 blocks through height 587. FILE scrubbing and
 file-inclusive backup verification covered 80 CIDs and 10 MiB of content;
 restoring the backup matched its tip and state hashes. Guest reboot restored
 node and Manager readiness with the original configuration, binaries, signed
-genesis, protocol schedule and pinned filesystem. Independent post-reboot checks
+genesis and pinned filesystem. Independent post-reboot checks
 matched all 912 original mutation receipts, retained state and FILE bytes.
 A 128 MiB service-limit check refused startup with exit 75, without an OOM kill
 or automatic restart during

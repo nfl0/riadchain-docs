@@ -50,7 +50,7 @@ extend that history; checkpoints and query indexes accelerate access but do not
 replace it. A joining node needs the exact authenticated genesis artifact and
 must verify the history it accepts.
 
-Network participants coordinate protocol upgrades outside the chain. Signed genesis fixes the initial parameters, and agreed activation heights select independently numbered protocol rules. There are no on-chain votes or chain admin keys.
+Signed genesis defines the network’s initial rules and parameters. Application owners manage permissions within their own contracts.
 
 ## State and availability
 

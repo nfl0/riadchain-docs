@@ -20,8 +20,6 @@ riadchain-cli backup create \
 
 Choose a new output directory for each backup. `--files all` includes and verifies the objects currently present under `files/objects/` and requires every committed FILE at the included chain tip to be present with its exact size. A missing or corrupt committed object rejects creation before the final backup directory is installed. Inspect [archive health](/node/file-archive/) as well as backup verification.
 
-Keep the operator-agreed protocol schedule in your recovery kit. Pass `--protocol-upgrades /path/upgrades.json` to backup create, verify, restore and replay verify when the chain uses it, or use `--config <node.toml>` with the same `protocol_upgrades_file`; the archive does not automatically include that external file.
-
 The backup contains a versioned manifest, signed `genesis.json`, `canonical/blocks.log`, any durable fork evidence and, when selected, FILE objects. It deliberately omits derived receipts, indexes, checkpoints, staged uploads and temporary data.
 
 Keys, RPC tokens and other credentials are not part of this chain backup. Keep separate protected recovery copies and document how to restore the node's configuration without publishing those secrets.
@@ -87,7 +85,7 @@ genesis_file = "/var/lib/riadchain-restored/genesis.json"
 key_file = "/secure/surviving-funded-node.key"
 listen = "127.0.0.1:8545"
 peers = ["http://unavailable-peer.home:8545"]
-# Retain the agreed allowlist, protected P2P credentials and protocol schedule.
+# Retain the agreed allowlist and protected P2P credentials.
 ```
 
 ```sh

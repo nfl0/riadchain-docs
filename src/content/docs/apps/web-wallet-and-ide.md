@@ -41,8 +41,8 @@ back into blocks.
 
 ## Run locally, then review deployment
 
-The local WASM sandbox runs the Rust Charlie VM under protocol 2 rules, including
-bounded storage scans and record-field deletion. It accepts a caller, block
+The local WASM sandbox runs the Rust Charlie VM with bounded storage scans and
+record-field deletion. It accepts a caller, block
 height, timestamp and gas limit, keeps its own storage and balance, and submits
 no network transaction. Word gas costs come from the same Rust protocol rules
 used by the node.
@@ -50,8 +50,7 @@ used by the node.
 Its UI discloses missing external-contract, account-balance, capability,
 scheduling, chain-fee and signature behavior, plus caller/self-transfer
 differences. Local success is not proof of node acceptance or consensus
-execution. The selected chain must activate protocol 2 before accepting contracts
-that use its new native words; the sandbox cannot activate a network upgrade.
+execution. Use node simulation to check a contract against its selected network.
 
 Deployment review shows the source and compiled fingerprints, account, chain,
 predicted contract address, fee, gas, expiry and local transaction ID. Calls use

@@ -30,11 +30,7 @@ transaction unresolved. Preserve its signed bytes and ID before broadcasting;
 follow [transaction recovery](/developers/transactions/) before replacement.
 Ten-second blocks do not guarantee confirmation within ten seconds.
 
-## Use protocol 3 primitives
-
-The contract requires [protocol 3](/protocol/upgrades/). Installing a supporting
-node release does not activate it on an existing network. Participants must
-agree on an activation schedule separately.
+## Use typed commitments and authenticated chain identity
 
 | High-level API | Purpose |
 | --- | --- |
@@ -181,4 +177,4 @@ actions. No accounts are funded automatically. Uncertain or expired originals
 block replacement until reconciled.
 
 Source: [contract and deployment guide](https://github.com/nfl0/riadchain/blob/master/dapps/Checkpoint/README.md),
-[protocol-3 specification](https://github.com/nfl0/riadchain/blob/master/docs/protocol/APPLICATION_CHECKPOINT_FOUNDATION.md).
+[checkpoint specification](https://github.com/nfl0/riadchain/blob/master/docs/protocol/APPLICATION_CHECKPOINT_FOUNDATION.md).

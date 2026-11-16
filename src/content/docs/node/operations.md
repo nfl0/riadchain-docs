@@ -163,6 +163,7 @@ If every producer is down, a transfer to an empty recovery wallet cannot confirm
 
 ## Plan software changes
 
-Participants agree on a numeric protocol ID and activation height outside the chain. Install a release implementing those rules and reference the same agreed JSON schedule through `protocol_upgrades_file` in native TOML on every producer and recovery machine. Software package versions remain separate release metadata; protocols 1, 2 and 3 are implemented.
-
-Back up canonical history, FILE objects and the public schedule, verify release artifacts, then upgrade followers and the producer before activation. `NodeService.GetProtocolInfo` reports whether the installed node supports the next block's protocol. Unknown rules stop production and acceptance at activation; changing a historical schedule fails validation. See [protocol upgrades](/protocol/upgrades/).
+Verify the release artifacts and make a verified backup of signed history and
+active FILE objects before updating. Check a follower’s chain identity, signed
+tip and archive after restart. Keep an available peer while servicing the
+current producer.

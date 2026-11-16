@@ -48,7 +48,7 @@ unnecessary. Null and empty values retain slots. Preserve balances, outstanding
 claims, authorization and markers needed to prevent reuse. Deletes use the same
 rollback and commit pipeline as writes.
 
-## Protocol 2: page records and remove fields
+## Page records and remove fields
 
 Store independently updated entities under keys such as `records/<id>`.
 `storageScan("records/", null, 20)` returns
@@ -66,7 +66,7 @@ calls can change subsequent pages.
 
 `valueDelete(record, key)` removes a field and returns the same local record.
 Missing fields are harmless; other null fields remain. Persist the result with
-`storageSet` when needed. Both features require [protocol 2 activation](/protocol/upgrades/).
+`storageSet` when needed.
 
 ## Separate current state from history and object bytes
 

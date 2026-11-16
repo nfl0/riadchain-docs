@@ -111,8 +111,8 @@ native host effects, subject to balance, gas and execution rules.
 | `ctx.txId` | Transaction ID |
 | `ctx.block` | Execution block index |
 | `ctx.timestamp` | Execution timestamp in milliseconds |
-| `ctx.chainId` | Signed-genesis chain identity; protocol 3 |
-| `ctx.genesisHash` | Authenticated genesis block hash; protocol 3 |
+| `ctx.chainId` | Signed-genesis chain identity |
+| `ctx.genesisHash` | Authenticated genesis identity |
 
 Public parameters, direct `ctx.data.field` access and `msg(key)` read only the
 selected message field. Standalone `ctx.data` creates the full message record;
@@ -126,17 +126,15 @@ intermediary exercise authority the user did not intend to grant.
 
 ## Typed commitments and binary codecs
 
-Protocol 3 adds `typedHash(domain, value)` for canonical typed-value commitments,
+Use `typedHash(domain, value)` for canonical typed-value commitments,
 plus `bytesSha256`, `bytesKeccak256`, `utf8ToHex`, `hexToUtf8`, `base64ToHex` and
 `hexToBase64`. Binary values use lowercase, even-length hex without `0x`; strict
 decoders reject invalid UTF-8 and noncanonical encodings. `typedHash` preserves
 integer/string/null distinctions and does not hash JSON text. Include verified
 chain, genesis, contract and application replay fields in the value yourself.
 
-The new VM operations require active protocol 3; compilation or a software
-update alone does not activate them. Existing text helpers retain their earlier
-meaning. See [application checkpoints](/build/application-checkpoints/) for the
-digest format, snapshot reads and the implemented trusted-publisher reference.
+See [application checkpoints](/build/application-checkpoints/) for the digest
+format, snapshot reads and the trusted-publisher reference.
 
 See [contract resource practices](/build/resource-practices/) for efficient reads,
 state layouts and cleanup without automatic retention policies.

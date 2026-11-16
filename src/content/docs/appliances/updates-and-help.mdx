@@ -25,39 +25,13 @@ The phone needs a reachable local or private route to the machine. It can carry
 the downloaded bundle onto an internet-isolated LAN; the machine does not need
 public internet for this transfer. This is not a physically disconnected update.
 
-Node updates do not update Linux, Manager or the wallet. They also do not
-automatically coordinate protocol activation across a network. Those are
-separate procedures.
-
-## Schedule a network upgrade
-
-Installing node software preserves the network's existing activation schedule.
-After every participant has supporting software, agree on the same protocol and
-future block height outside the chain.
-
-1. In Manager's **Maintenance**, select the intended healthy machine and choose
-   **Schedule network upgrade**.
-2. Choose a supported protocol and enter the agreed activation block.
-3. Review the original and proposed schedules, then authenticate on the phone.
-4. Choose **Check saved schedule** until the original job and healthy network
-   confirm that the schedule is installed. Repeat the same agreed activation on
-   every participant before that block is reached.
-
-The node pauses for native history verification and restart. Activation occurs at
-the agreed block, rather than when the schedule is installed. Manager supports
-individual machines; it does not coordinate an automatic network rollout. Existing
-activations cannot be edited through this flow. Fresh appliance networks already
-record their latest starting protocol at block 1.
-
-This workflow has focused source, unit and isolated worker validation. Physical
-phone/appliance upgrade and interruption qualification remains unfinished.
+Linux, Manager and the wallet use their own update procedures.
 
 ## When an operation is uncertain
 
-If pairing, preparation, start, restart, installation or scheduling loses its reply, keep the
-original saved request. **Check setup outcomes**, **Check saved restart** or
-**Check saved start**, **Check saved install** or **Check saved schedule**
-reconciles what the machine actually recorded.
+If pairing, preparation, start, restart or installation loses its reply, keep the
+original saved request. Use the corresponding **Check** action in Manager to
+reconcile what the machine recorded.
 
 “Unknown” or “unresolved” does not mean nothing happened. Returning to the app
 does not automatically repeat the operation. Where an explicit retry is offered,

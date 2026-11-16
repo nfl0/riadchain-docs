@@ -26,7 +26,7 @@ export default defineConfig({
         { label: 'Build contracts', collapsed: true, items: ['build/quickstart', 'build/ping-reference', 'build/application-checkpoints', 'build/language', 'build/abi-and-guards', 'build/charlie-and-native-tokens', 'build/resource-practices'] },
         { label: 'SDK and RPC', collapsed: true, items: ['developers/sdk', 'developers/transactions', 'developers/rpc', 'developers/mcp', 'developers/contract-arguments', 'developers/files'] },
         { label: 'Wallets and apps', collapsed: true, items: ['apps/native-wallet', 'apps/keychain', 'apps/web-wallet-and-ide', 'apps/names', 'apps/chat', 'apps/smart-home', 'apps/dex-and-riax', 'apps/games-and-explorer'] },
-        { label: 'Protocol reference', collapsed: true, items: ['protocol/overview', 'protocol/succession', 'protocol/upgrades', 'protocol/fees', 'protocol/determinism', 'protocol/storage'] },
+        { label: 'Protocol reference', collapsed: true, items: ['protocol/overview', 'protocol/succession', 'protocol/genesis', 'protocol/fees', 'protocol/determinism', 'protocol/storage'] },
       ],
     }),
   ],

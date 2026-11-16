@@ -84,7 +84,7 @@ Retain the original signed transaction and content so its upload can resume or
 restart without creating another transaction. `uploadFileBytes` still receives
 a complete `Uint8Array`; it is not an arbitrary-size disk-stream API. Keep client
 memory budgets separate from the node's maximum FILE size. Deploy the matching
-node and SDK versions together; this is an RPC change, not a network upgrade.
+node and SDK versions together so both use the same request format.
 
 ## Download verified binary content
 

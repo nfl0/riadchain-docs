@@ -89,8 +89,7 @@ storage.initialized = true
 
 This fragment assumes `EXPECTED_OWNER` was rendered as a validated literal before
 compilation. Decide whether immediate sender checks are also needed for your
-contract's call graph. Setup ownership is separate from an upgrade authority and
-from chain-wide protocol upgrades.
+contract's call graph. Use a separate permission check for contract code changes.
 
 ## Bind client metadata to deployed code
 

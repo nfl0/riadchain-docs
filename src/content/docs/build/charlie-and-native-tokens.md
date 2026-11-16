@@ -88,11 +88,11 @@ typed RPC queries rather than guessing reserved storage slots.
 
 ## What a local sandbox establishes
 
-The web IDE's Charlie bridge uses the Rust compiler and interpreter under
-protocol 2, with the same Rust protocol word costs as the node. Its local host
+The web IDE's Charlie bridge uses the Rust compiler and interpreter with the
+node’s gas costs for supported words. Its local host
 is an adapter: storage, balances and caller context are supplied locally. It
 does not reproduce a persistent node's funded-input validation, native asset
-ledger, selected-chain upgrade activation, FILE admission or scheduling
+ledger, FILE admission or scheduling
 lifecycle. Unmodeled host and chain operations still need node simulation.
 
 A passing sandbox run proves only the behavior it actually exercised. Test
