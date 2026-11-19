@@ -19,8 +19,37 @@ bun run keychain:build
 ```
 
 Enable **Developer mode** on Chrome's extensions page, choose **Load unpacked**,
-then select `apps/Riad-keychain/dist`. For an existing installation from that
-path, choose **Reload** and keep the extension's data.
+then select `apps/Riad-keychain/dist`. Keychain 3.3.0 and later include a public
+manifest key. Check for this stable Chrome ID on the extensions page.
+
+```text
+nblognglcdkmbeikggjngllgbkllokfh
+```
+
+For an existing installation with this ID, choose **Reload** to retain the
+extension's data.
+
+### Move from an older installation
+
+Earlier unpacked builds used an ID derived from their directory path. Moving
+to the stable ID creates a separate extension installation. Chrome stores
+each extension ID’s wallet, connection and transaction journal separately.
+
+1. In the old installation, download your password-encrypted `.age` wallet
+   backup and keep its password. A compatible native 24-word recovery phrase
+   can also restore the account.
+2. Resolve any previously pending original transactions using the old
+   installation's **Check transaction** action. Keep that installation and its
+   data until those originals are resolved; a wallet backup does not include
+   its transaction journal.
+3. Load the current build, confirm the stable ID above, and import the backup
+   or restore the compatible recovery phrase.
+4. Re-enter the RPC connection details supplied by your node operator. Verify
+   the restored address and intended network before using the account.
+
+Keep the old installation's data until both the account verification and
+original-transaction checks are complete. Do not create a replacement
+transaction for an unresolved original.
 
 ## Set up a wallet
 
@@ -36,8 +65,15 @@ showing the account balance. It saves the verified connection and encrypts
 the RPC token in this browser profile so it can reconnect automatically.
 For a connection saved using an older Keychain build, enter its token once.
 Use **Forget saved token** in Keychain settings to remove the credential.
-If the node restricts browser origins, allow the extension's exact
-`chrome-extension://` origin using the ID shown in Chrome.
+Add this Keychain origin to `network.rpc.allowed_origins` on the node.
+
+```text
+chrome-extension://nblognglcdkmbeikggjngllgbkllokfh
+```
+
+Each node needs one entry for all installations of the stable build.
+Keychain still needs the RPC token. During the one-time move, replace the old path-derived origin
+after its pending originals are resolved and the restored account is verified.
 
 In Android Wallet, open **Network → Network details** to copy the RPC URL,
 chain ID, and genesis hash. **Reveal RPC token** requires device
