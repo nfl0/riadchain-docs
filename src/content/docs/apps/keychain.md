@@ -41,6 +41,10 @@ In Android Wallet, open **Network → Network details** to copy the RPC URL,
 chain ID, and genesis hash. **Reveal RPC token** requires device
 authentication and hides the token again after 30 seconds.
 
+From an Android account, **Reveal recovery phrase** opens the saved words
+after authentication. **Copy recovery phrase** copies those words for the
+selected account. Use a current Android Wallet build with the native RPC.
+
 ## Send RDC and work with contracts
 
 Copy your `riad1…` address to receive RDC. Review the amount, recipient, fee,
