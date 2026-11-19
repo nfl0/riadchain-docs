@@ -32,10 +32,12 @@ the encrypted backup and keep its password separately.
 
 Use the HTTPS RPC URL, chain ID, full genesis hash and RPC token supplied
 by your node operator. Keychain verifies the chain and genesis before
-showing the account balance. It remembers public connection details and
-keeps the RPC token in the current side panel session. If the node restricts
-browser origins, allow the extension's exact `chrome-extension://`
-origin using the ID shown in Chrome.
+showing the account balance. It saves the verified connection and encrypts
+the RPC token in this browser profile so it can reconnect automatically.
+For a connection saved using an older Keychain build, enter its token once.
+Use **Forget saved token** in Keychain settings to remove the credential.
+If the node restricts browser origins, allow the extension's exact
+`chrome-extension://` origin using the ID shown in Chrome.
 
 In Android Wallet, open **Network → Network details** to copy the RPC URL,
 chain ID, and genesis hash. **Reveal RPC token** requires device
@@ -47,9 +49,10 @@ selected account. Use a current Android Wallet build with the native RPC.
 
 ## Send RDC and work with contracts
 
-Copy your `riad1…` address to receive RDC. Review the amount, recipient, fee,
-and network before you authorize a send. Contract actions use a `rct1…` target.
-See [accounts and permissions](/protocol/accounts/) for the address rules.
+Choose **Receive** to copy your `riad1…` address. Choose **Send**, enter
+the recipient and amount, then review the fee quoted by the node before signing.
+Keychain also quotes fees for token and NFT transfers and contract actions.
+Contracts use `rct1…` addresses. See [accounts and permissions](/protocol/accounts/).
 
 Keep the original transaction when a node response is interrupted. Keychain
 saves the signed bytes before submission. Use **Check transaction** to
