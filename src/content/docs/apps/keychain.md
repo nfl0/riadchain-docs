@@ -65,15 +65,17 @@ showing the account balance. It saves the verified connection and encrypts
 the RPC token in this browser profile so it can reconnect automatically.
 For a connection saved using an older Keychain build, enter its token once.
 Use **Forget saved token** in Keychain settings to remove the credential.
-Add this Keychain origin to `network.rpc.allowed_origins` on the node.
+Add this Keychain origin to the node's
+[browser origin allowlist](/node/configuration/#browser-origin-allowlist).
 
 ```text
 chrome-extension://nblognglcdkmbeikggjngllgbkllokfh
 ```
 
 Each node needs one entry for all installations of the stable build.
-Keychain still needs the RPC token. During the one-time move, replace the old path-derived origin
-after its pending originals are resolved and the restored account is verified.
+Keychain still needs the RPC token. During the one-time move, replace the old
+path-derived origin after its pending originals are resolved and the restored
+account is verified.
 
 In Android Wallet, open **Network → Network details** to copy the RPC URL,
 chain ID, and genesis hash. **Reveal RPC token** requires device

@@ -19,6 +19,13 @@ protobuf values to application types.
 | Contract view | `callView({ contractAddress, method, args })` |
 | FILE references and content | `listFiles()`, `readFile()` |
 
+## Browser access
+
+Browser clients call the same Connect RPC over HTTPS. For requests with an
+`Origin` header, the node checks its [browser origin allowlist](/node/configuration/#browser-origin-allowlist).
+RPC calls also require the node's bearer token. For a rejected connection, check
+the [origin and token diagnostics](/node/configuration/#diagnose-browser-access).
+
 ## Account history and block execution
 
 ```ts

@@ -29,7 +29,7 @@ Without an explicit path, the daemon checks `./node.toml`, then `/etc/riadchain/
 | `data_dir` | Prepared directory with this machine's credentials, complete signed history and FILE archive |
 | `network.genesis` | Full trusted genesis hash, independently checked against this machine's prepared record |
 | `network.peers` | Exact authenticated peer routes. Use `[]` for an approved standalone setup |
-| `network.rpc` | Optional authenticated client listener and protected bearer file |
+| `network.rpc` | Optional client RPC listener, protected bearer file and browser origin allowlist |
 | `storage` | Pinned filesystem identity for packaged deployments |
 
 Keep credential files and the RPC token outside source control and restrict access to the node service account. Configure peer routes using the enrolled account and endpoints described in [peer enrollment](/node/operations/#enroll-a-follower).
@@ -75,11 +75,73 @@ Peers use dedicated, mutually authenticated connections established from the mac
 [network.rpc]
 listen = "127.0.0.1:8545"
 token_file = "./secrets/wallet-rpc-token"
-# Need this only for clients that send Origin:
-# allowed_origins = ["chrome-extension://your-installed-extension-id"]
 ```
 
 The bearer file contains a separately generated token with 32 to 256 visible ASCII characters. Use a mode-0600 file readable by the service account. All native RPC methods require the token. Browser origin checks are separate. Give trusted wallets and internal services the exact chain ID and genesis pin. Use HTTPS outside loopback and keep the native operator token out of public browser bundles.
+
+### Browser origin allowlist
+
+The wallet RPC uses Connect and Protobuf over HTTP. Chrome extensions and web
+apps can call the same RPC methods as native clients. When a request carries an
+`Origin` header, the node checks it against `network.rpc.allowed_origins` before
+checking the bearer token. The origin identifies the browser context. The token
+grants access to RPC methods, and wallet signatures authorize transactions.
+
+The default list is empty. Omitting `allowed_origins` or setting it to `[]`
+rejects all requests that carry an origin. Clients that omit the header
+authenticate with the bearer token. The rule is local to each node’s client RPC
+listener. Peer connections use their own machine authentication.
+
+Add the origins you use to the existing `[network.rpc]` table. This example
+includes [Riad Keychain](/apps/keychain/) and an example website. The same
+Keychain entry works for every installation of its stable build.
+
+```toml
+allowed_origins = [
+  "chrome-extension://nblognglcdkmbeikggjngllgbkllokfh",
+  "https://dashboard.example.org",
+]
+```
+
+Use up to 16 exact origins. For a website, copy its scheme, hostname and any
+non-default port. Use HTTPS, or HTTP on `localhost`, `127.0.0.1` or `[::1]` for
+local development. Use `chrome-extension://` followed by the extension ID for
+Chrome extensions. Entries are bare origins, with no trailing slash, path,
+query, fragment or wildcard.
+
+Check the updated configuration and restart that node. For a packaged
+installation, run the check as the service account, then restart the service
+or use [Manager's Maintenance tab](/appliances/everyday-use/).
+
+```sh
+sudo -u riadchain riadchain-cli --config /etc/riadchain/node.toml config check
+sudo systemctl restart riadchaind.service
+sudo -u riadchain riadchain-cli --config /etc/riadchain/node.toml status
+```
+
+### Diagnose browser access
+
+If a browser reports a connection error, check the origin against the actual RPC
+endpoint. This preflight uses an example address and carries no token. Substitute
+your RPC URL and the calling app's exact origin.
+
+```sh
+curl -i -X OPTIONS \
+  -H 'Origin: https://dashboard.example.org' \
+  -H 'Access-Control-Request-Method: POST' \
+  -H 'Access-Control-Request-Headers: authorization,content-type,connect-protocol-version' \
+  https://rpc.example.org/riadchain.v1.NetworkService/GetStatus
+```
+
+| Response | Meaning |
+| --- | --- |
+| `204 No Content` with a matching `Access-Control-Allow-Origin` | The node accepted the origin for preflight. Check the actual RPC call for authentication and readiness. |
+| HTTP `403` with `browser origin is not allowed` | Check the exact origin, the active node configuration and whether the node restarted. |
+| HTTP `401` on the actual RPC call | The request reached the token check. Verify the RPC token supplied to the client. |
+
+If an HTTPS proxy fronts the node, preserve the `Origin` and `Authorization`
+headers and forward `OPTIONS` requests and CORS response headers. Keep the bearer token in the wallet or
+authorized service. See [Connect's browser CORS reference](https://connectrpc.com/docs/cors/).
 
 ## Limits and storage planning
 
