@@ -15,15 +15,24 @@ local development builds, not a published store release or public deployment.
 
 ## Choose an account and network
 
-1. Open **Settings → Accounts** and add an account. Choose **Create** or **Restore**
-   with an existing recovery phrase or private key.
-2. Save the recovery material offline before continuing. Anyone holding it can
-   control the account. Existing accounts expose recovery material only after an
-   explicit reveal and device authentication.
-3. In **Settings → Networks**, add your node URL and, if required, its access token.
-   Choose **Check node**, verify the returned **Expected chain ID**, then save.
-4. Select that account and network. Notes needs a verified contract address under
-   **Settings → Sub-accounts**; the app does not assume a public deployment.
+Open a network account from the **Wallet** tab. An appliance setup selects
+the spending account first and saves the chain ID, genesis hash and RPC
+credential. Enter the trusted HTTPS address once. For a standalone wallet,
+create or restore an account and use the connection details supplied by your
+network operator.
+
+Back up your recovery phrase offline. For a rotated key, retain the current
+phrase, stable account ID and network identity together. See
+[accounts and permissions](/protocol/accounts/) for key rotation,
+funded subaccounts and limited access for apps.
+
+## Claim validator rewards
+
+Under **Show network owners**, open the producing owner's wallet. **Claim
+rewards** shows the amount and maximum fee before signing. You may need a
+small transfer from a spending account to cover that fee while preserving
+the producing owner's minimum balance. The wallet checks the original receipt
+before making the claimed funds available to send.
 
 ## Unlock the wallet
 

@@ -18,17 +18,9 @@ Use **Maintenance** for a reviewed node restart and its saved request. Restart
 one machine at a time and check the outcome. If it is the only eligible producer,
 block production pauses until it is back and ready.
 
-If Manager shows **Stopped: insufficient RAM**, chain processing has stopped
-deliberately while management remains available. Increase the machine or VM's RAM,
-or free memory used by other workloads, then open **Maintenance** and review
-**Start node**. Authenticate on the phone and use **Check saved start** to observe
-the original result. A start uses the existing signed network, history and FILEs;
-it cannot create a replacement network or repair corrupted history. Readiness
-and block height remain unavailable while the chain daemon is stopped.
-
-If memory is still insufficient, the node refuses startup. A failed start may be
-dismissed before a new deliberate request after fixing the cause; an unknown or
-unresolved start retains its original request for checking.
+If the service stops, inspect the machine status and logs to identify the cause.
+Once the cause is resolved, review **Start node** where Manager offers it. Use
+the saved status to verify that the same signed network returns.
 
 <figure className="app-screen">
   <img src="/images/appliances/manager-maintenance.webp" alt="Manager Maintenance screen before pairing, showing where restarts and saved requests will appear." width="720" height="1440" loading="lazy" />
@@ -37,13 +29,13 @@ unresolved start retains its original request for checking.
 
 ## Open Riadchain
 
-In the **Riadchain** app's **Settings**, select your account and network. A setup
-performed through this wallet retains its owner accounts and connection
-credentials. Unlock the selected connection when asked.
+In the **Riadchain** app, open your spending account from the wallet. Setup
+retains the owner accounts and connection details. Unlock the saved connection
+when asked. Use an **owner** account to check validator rewards and review a claim.
 
 <figure className="app-screen">
   <img src="/images/appliances/wallet-settings.webp" alt="Riadchain Settings screen showing the Accounts and Networks sections and the Set up appliances action." width="720" height="1440" loading="lazy" />
-  <figcaption>The wallet selects accounts and networks. The Local regtest profile shown here is the app's development example, not a paired customer machine.</figcaption>
+  <figcaption>The wallet selects accounts and networks. This earlier capture shows the wallet on a disposable development connection.</figcaption>
 </figure>
 
 Use the wallet for [reviewed transfers](/apps/native-wallet/#receive-and-send)
@@ -54,7 +46,7 @@ automatically deploy its contracts. Follow its own setup instructions for
 Funding another machine's **owner** account can make its already authorized
 signer eligible to produce blocks. Verify the owner address and network first.
 Keep enough available funds on the existing producer: initial setup funds it
-with the minimum 1 RDC, and transfers and fees reduce that balance. Claim accrued
+with the default minimum of 10,000 RDC. Use a spending account for routine transfers and fees. Claim accrued
 rewards before moving funds; unclaimed rewards do not count toward eligibility.
 Manager does not allocate coins or change that eligibility.
 
@@ -73,14 +65,6 @@ does not automatically repair the wallet or node peer addresses.
 - **History and file backups** recover stored data. A recovery phrase cannot
   recreate missing photos, documents or chain history.
 
-A mirror helps with a failed drive inside one machine. A separate replica helps
-with a lost machine; a copy at another location helps with a site outage. None
-of these alone proves that every committed file has been copied. Verified
-[history and FILE backups](/node/backup-recovery/) currently need the operator
-tools; Manager does not yet provide archive backup or restore.
-
-The current multi-machine setup needs an archive peer to acknowledge new FILE
-publications. Another eligible producer alone does not guarantee uninterrupted
-file writes while every other archive peer is unavailable.
+Use the [operator backup tools](/node/backup-recovery/) to verify the signed history and active file bytes. Keep the verified copy on independent storage. Manager does not provide archive backup or restore.
 
 Next: [updates and help](/appliances/updates-and-help/).

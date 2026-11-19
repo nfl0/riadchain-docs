@@ -121,13 +121,12 @@ configuration itself; leave it absent until you approve the wallet-signed plan.
 ## Start your network and plan recovery
 
 Follow [pairing](/appliances/connect-machines/) and [network
-creation](/appliances/first-network/), or use the [workstation CLI setup](/node/cli-setup/)
-for one fresh VM without a phone. Choose one controller for initial enrollment.
-One VM can start a network. Manager selects
-the installed binary's latest supported protocol at block 1; existing network
-software updates preserve their agreed schedule. A follower or successor is a
-network participation choice, independent of whether its machine is virtual or
-physical. Guided joining/restoring through Manager remains unfinished.
+creation](/appliances/first-network/), or use the
+[native CLI setup](/node/quickstart/) for an independently operated VM.
+One prepared VM can start the chain. Use the native route with reserved peers
+when planning a later machine addition. Manager can install signed node
+packages after provisioning. Guided joining and archive restoration remain
+operator workflows.
 
 Back up [canonical history and native FILE bytes](/node/backup-recovery/) and keep
 owner phrases separately. A VM snapshot on the host's single SSD shares its

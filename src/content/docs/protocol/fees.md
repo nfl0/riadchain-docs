@@ -5,7 +5,9 @@ description: Calculate integer fee reservations, gas refunds and FILE storage ch
 
 Transactions pay fees in RDC base units. One RDC is 100,000,000 base units, also called satoshis in the implementation. All fee arithmetic is integer arithmetic.
 
-Read the selected node's active fee schedule and gas limits through `NodeService.GetProtocolParams` or `getProtocolParams()`. SDK defaults help construct transactions but do not override a chain's genesis values.
+Use the selected network's [genesis parameters](/protocol/genesis/) and review the
+fee reservation returned by its native transaction preparation RPC. The node
+validates fees against the signed network settings.
 
 ## Reserve the maximum fee
 

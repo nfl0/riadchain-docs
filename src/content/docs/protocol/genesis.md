@@ -16,6 +16,10 @@ FILE storage and succession. Private networks use ten-second blocks.
 Set these choices before creating the network and retain the signed definition
 with your recovery material.
 
+The current release creates [private succession networks](/protocol/succession/).
+The [public PoS prototype](/protocol/proof-of-stake/) uses a separate genesis
+with a bonded validator set.
+
 When the node release supports scheduling, participants can agree to activate
 future rules on the same chain. See [protocol upgrades](/protocol/upgrades/).
 

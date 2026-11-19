@@ -3,9 +3,9 @@ title: Protocol overview
 description: Understand private home and company networks, Rust execution, transaction settlement and native FILE storage.
 ---
 
-Riadchain is an undeployed blockchain for private, permissioned networks in homes and companies. Its intended topology has one active producer and optional, strongly recommended followers. Authenticated peers, funded signing accounts and protected keys define the consensus trust boundary.
+The current Riadchain node runs private, permissioned networks for homes and companies. One active producer builds blocks. Following nodes independently verify signed history, replicate FILE data, and provide recovery copies.
 
-The protocol uses [succession](/protocol/succession/) for takeover when a producer becomes unavailable. It is not an open validator network with Byzantine quorum finality. Followers improve independent verification, redundancy and fault detection; they do not remove the need for a trusted operator recovery process.
+Private networks use [stake-based succession](/protocol/succession/) to replace an unavailable producer. [Public proof of stake](/protocol/proof-of-stake/) is a separate prototype that requires a quorum certificate to finalize each block.
 
 ## One execution authority
 
@@ -16,6 +16,8 @@ The high-level contract language compiles to Charlie source. Native deployment v
 ## Transactions and state
 
 RDC uses integer base units: 1 RDC equals 100,000,000 base units. Ordinary spending consumes unspent transaction outputs, or UTXOs, and creates outputs according to the signed transaction and deterministic settlement rules. Native token balances and contract storage are separate state components.
+
+An account uses a stable `riad1…` address and ML-DSA-65 authorization. Contracts use a distinct `rct1…` address. See [accounts and permissions](/protocol/accounts/) for first spend, key rotation, and app access.
 
 A transaction's canonical identity binds its content and chain. The node checks signatures, funding, transaction shape and resource limits before accepting it. Contract transactions also declare a gas budget. Clients must read the selected node's chain ID and active parameters rather than treating a wallet's network display name as protocol identity.
 

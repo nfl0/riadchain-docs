@@ -1,57 +1,28 @@
 ---
 title: Succession consensus
-description: Follow automatic funded-account production, timed successor rotation and verified operator recovery.
+description: Understand trusted block production, timed takeover and conflict handling on a private network.
 ---
 
-Riadchain uses succession-based proof of stake for private home and company networks. One trusted signing account produces blocks at a time. If it stops, funded successors receive deterministic timeout windows to resume production.
-
-This assumes trusted operators and protected keys. It does not provide Byzantine quorum finality or automatic resolution of network partitions.
+Private Riadchain networks use trusted succession. A single eligible owner produces ordinary blocks. If that producer stops, other eligible owners receive deterministic takeover windows. [Proof of stake](/protocol/proof-of-stake/) describes the separate public-consensus design.
 
 ## Producer and followers
 
-Native nodes verify and replay history automatically. An owner below the minimum confirmed spendable balance remains ineligible. Funding it to the minimum makes it an eligible standby; its owner key or authorized operational signer produces when local readiness permits.
+Production eligibility follows aggregate confirmed spendable RDC and the applicable signing authority. The private setup defaults to **10,000 RDC** and a **one-hour succession timeout**. The signed genesis binds the actual values. Unclaimed rewards do not count toward the balance.
 
-There is no validator registry, fixed runtime role or mining flag. The current producer also needs the minimum balance. Unclaimed rewards do not confer eligibility.
-
-Keep distinct keys on machines in separate storage failure domains. A peer invitation shares public bootstrap information; permission to exchange peer traffic remains separate from funded production eligibility.
+An enrolled machine needs zero RDC to join over its authenticated peer routes, verify history and serve FILEs. Funding its signing account lets it participate in succession once the transfer confirms and the machine is synchronized. The node has no permanent producer or follower role.
 
 ## Owner and machine keys
 
-A funded owner can authorize one operational machine key in signed genesis or through an owner-signed transaction. Blocks identify the owner; the machine signs without inheriting owner spending, reward-claim or contract ownership authority. Rewards and succession eligibility remain with the owner. P2P traffic authenticates the machine separately.
-
-Owner-signed `setSigner` or `revokeSigner` calls change the binding for the next block. A new key cannot sign the block that first authorizes it. Local [`production_owner` configuration](/node/configuration/) selects the owner without granting authority. Revoked machines remain archive followers.
-
-The owner always retains direct signing for deliberate recovery if the operational key is lost. Restore verified history and FILEs and fence old producers first; do not run two producers for one owner. Keep a separately funded rescue owner. Limited machine keys protect account authority, while a compromised machine can still censor or disrupt production and damage its local data. Guided phone provisioning remains in development.
+A funded owner can authorize an operational signer. Blocks identify the owner and verify the machine's authorized ML-DSA-65 signature. That machine key does not inherit owner spending or reward-claim authority. The Android setup keeps the owner keys in the wallet and gives the appliance its own operational credentials. Native CLI setup can instead prepare directly signing node identities, whose private seeds also authorize spending for those accounts.
 
 ## Choose the successor deterministically
 
-Selection uses authoritative state before the proposed block:
+Takeover candidates follow account-address order after the incumbent, wrapping to the beginning. Candidates receive timeout-sized windows. If the first eligible candidate is offline, its window expires and the next candidate's opens. A candidate can publish a provisional succession block only after its authorized window opens.
 
-1. Find account addresses other than the current producer whose aggregate spendable UTXO balance meets `minStakeSatoshis`.
-2. Order addresses after the current producer, wrapping to the lowest address.
-3. Give each successor a timeout-sized window, rotating again after the list is exhausted.
-4. For the selected address, use its lowest ordered `(transaction ID, output index)` active UTXO as the proof.
+After an authenticated startup sync and an incumbent outage, a qualifying node can establish ordinary production on the next block cadence following its provisional claim. New transactions can confirm while the former producer remains offline. Existing producers also continue normal production when a follower is offline.
 
-The proof identifies that exact output and amount. Its individual amount can be below the minimum when the account's aggregate balance qualifies. It cannot be spent in the succession block.
+## Verify recovery and resolve conflicts
 
-Offline funded wallets do not permanently block a later ready successor: the window advances. Funding a standby must happen while blocks are still being produced; an unconfirmed transfer cannot restart a stalled chain.
+A returning node on the same history prefix can synchronize to the new producer. At the first divergence, a valid incumbent block produced before the takeover window takes priority while the successor's entire branch remains provisional.
 
-## Validate chain time
-
-An ordinary block must be at least one block interval after its parent. A succession block must be at least one succession timeout after its parent, and its producer must own the selected window at that timestamp.
-
-Downtime can be arbitrarily long; historical validation imposes no upper gap limit. The funded current producer may resume an ordinary block after a long outage. Time alone does not authorize arbitrary accounts to produce.
-
-These rules use chain timestamps and checked integer arithmetic. Live admission separately rejects blocks more than two seconds ahead of the receiving clock. Keep clocks synchronized.
-
-## Validate every block
-
-Nodes verify the authorized signature, canonical hashes and parent linkage, timing, succession proof, execution limits, FILE commitments and resulting state hash. Invalid candidates cannot change canonical state.
-
-A configured node ordinarily needs successful authenticated synchronization before taking over. When peers are unavailable after a cold restart, an operator can use verified [isolated recovery](/node/backup-recovery/#resume-production-with-unavailable-peers). This is an explicit recovery decision, not evidence that an unreachable peer has stopped.
-
-## Fail-stop on a validated fork
-
-A fully validated same-parent conflict records durable evidence in `fork-alarm.json` and stops mutation and production. Restarting or isolated recovery does not clear the alarm or select a branch.
-
-Preserve evidence, compare independently verified history and coordinate recovery outside the node. A lost key can be replaced by a surviving funded recovery identity; a seed phrase does not recreate chain history or FILE bytes. [Recovery](/node/backup-recovery/) explains these boundaries.
+If both conflicting branches contain ordinary blocks, the node preserves their signed history and stops production. Authenticated reads remain available for comparison. Keep both history logs and FILE archives and coordinate recovery outside the node. See [back up and recover](/node/backup-recovery/).

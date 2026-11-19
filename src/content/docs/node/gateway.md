@@ -1,149 +1,77 @@
 ---
 title: Application access gateway
-description: Restrict application access to an existing private chain with on-chain rules and a separate local dashboard.
+description: Expose named app operations through scoped service identities while keeping native RPC and policy administration private.
 ---
 
-Riadchain Gateway is a separate service for exposing selected application
-operations from an existing private network. It does not require another chain
-or a different node type. The repository contains the management contract, SDK,
-local dashboard and Docker packaging; this guide does not announce a deployed
-public gateway.
+Riadchain Gateway connects applications to an existing private network. It checks
+current on-chain rules before reading a contract or submitting a managed call.
+The application receives the named API you configure. Native RPC and the node
+credential stay on the operator side.
 
-## Multiple applications, individual rules
+## Choose a listener
 
-The management contract holds named gateway instances. Each instance can register
-several applications, such as Notes, with multiple rules per application.
-An application or rule can be paused independently. Missing rules deny access.
+In the Gateway configuration referenced by `GATEWAY_CONFIG_FILE`, revision 59
+networks use `post-quantum-admin` for a local policy dashboard, or
+`post-quantum-service` for that dashboard and the authenticated application relay.
+Pin the chain ID, full 96-character genesis hash, `rct1…` policy contract,
+reviewed code SHA-256, and upstream node. Use a protected `nodeTokenFile`.
 
-Rules select one authenticated wallet or any authenticated wallet, plus an
-optional condition evaluated from current chain state. Conditions can require a
-native token balance, including ownership of a particular NFT, or an exact value
-in another contract's storage. The service pins the reviewed contract code.
-
-| Rule | Selected access |
-| --- | --- |
-| Contract view | One contract, method and complete set of argument constraints. |
-| Signed contract call | Same scope, bounded gas/value and explicit token-spend limits. |
-| Events | One contract and event name, with bounded pagination. |
-| FILE | One exact CID, with retrieval chunks up to 64 KiB. |
-| Balance | One account or the authenticated caller, and RDC or one native token. |
-
-Arguments can be fixed, bound to the caller, or explicitly allowed to vary. Extra
-or missing argument fields are rejected. Read grants must be reviewed against
-what that contract view or event returns: gateway filtering does not make all
-other chain state private from full network participants.
-
-This first version does not relay global block/history queries, mempool,
-arbitrary contract storage, peer synchronization, native administration, FILE
-uploads or delegated capability transactions. It uses the existing binary
-Connect/protobuf queries and signed transactions rather than another node API.
-
-## Separate administration
-
-Only the deployment-bound bootstrap account can initialize the management
-contract. It creates its admin NFT once and mints it directly to the separately
-pinned recipient. The funded deployer pays the deployment; the recipient keeps
-its own private key. There is no public first-caller claim or
-later mint path. Policy changes check the current holder of that exact NFT.
-This is application authority, not chain governance. Other application roles
-remain separate from Gateway administration.
-
-Transferring the NFT transfers gateway policy administration. Burning it or
-losing its keys locks administration; there is no hidden bootstrap-owner bypass.
-Choose the recipient and any explicit recovery design before deployment.
-
-The dashboard requests wallet authentication and separately reviews each policy
-transaction before signing. Private administration has a 30-minute idle timeout
-and a 12-hour absolute limit. Actual foreground interaction renews it only after
-checking the wallet and current administration rights; receipt polling does not.
-Switching tabs preserves drafts and the connection, discards unsigned reviews and
-pauses checks. Returning verifies the current wallet and policy. Account/network
-changes, wallet-access revocation or explicit disconnect clear the active scope. Session tokens
-remain in memory, so page reloads and service restarts require authentication.
-
-For a contract rule, enter its deployed address. The dashboard calculates and
-shows the SHA-256 of its exact Charlie code before review. You can paste an
-independently calculated hash for comparison; mismatches block review. Both rule
-and storage-condition code pins are checked again before initial dispatch.
-Review prepares a change; the wallet signature and successful execution apply it.
-
-**Import rule JSON** in the rule editor accepts a pasted rule object and fills the
-editable form. It validates the schema and selected application; existing rule IDs
-cannot be changed. Contract hashes may be omitted for lookup, while supplied
-hashes must match deployed code. Loading an import does not submit a transaction:
-review the resulting permissions and fingerprints before signing.
-
-**Import rules ZIP** loads a flat archive of up to 64 rule JSON files for the
-selected application. A generated rules archive may also contain its `manifest.json`
-index and `README.md`. The importer validates the whole archive before review,
-including supplied code pins and manifest chain identity. Limits are 1 MiB for
-both the archive and total expanded content, and 32 KiB per entry. Encrypted
-archives, duplicate files, and conflicting or existing rule IDs are rejected.
-
-The queue groups up to 32 rules into one reviewed transaction, so a typical
-policy update needs one wallet signature. The contract validates every rule,
-rejects duplicate IDs and applies the whole batch atomically with one policy
-epoch increment. An invalid entry rejects all changes in that transaction.
-Only a matching successful receipt advances the queue by the complete batch.
-An uncertain outcome pauses it for reconciliation; reloading restores its public
-rules and original transaction journal for the same wallet, chain and application.
-
-The dashboard retains the original signed transaction before
-submission. The service keeps durable submission journals, while policy remains
-on-chain. It stays on the current page and checks confirmation automatically while
-active, with a bounded retry period and a manual receipt check as fallback.
-A timeout is unresolved, not permission to create a replacement. A caller
-can still check the sanitized outcome of its own saved original after access was
-revoked; this does not authorize a new transaction.
-
-## Private deployment
-
-Keep native RPC private: direct node calls do not consult gateway policy. Pin the
-existing consensus chain ID, original genesis hash, management contract address
-and its code hash in protected local configuration. The service checks current
-node readiness and policy for each request and denies access when verification
-fails. Revocation blocks new gateway requests; it cannot retract a transaction
-already admitted by the node.
-
-The Docker service has separate relay and administration listeners:
-
-| Port | Purpose | Default host exposure |
+| Default port | Listener | Exposure |
 | --- | --- | --- |
-| 4180 | Authenticated application relay | Loopback, for the selected proxy/tunnel. |
-| 4181 | Local dashboard and administration | Loopback, kept private. |
+| 4180 | Named views and managed commands | Bind to loopback or a private interface reachable by the chosen TLS proxy or tunnel. |
+| 4181 | NFT-authenticated policy dashboard | Keep private, for example behind an SSH port forward or private HTTPS. |
 
-Node credentials stay in protected server-side files. Customer and administrator
-signing keys stay in their wallets. The gateway container receives no owner key.
-Use TLS outside loopback and explicitly list browser origins; CORS alone does not
-authenticate callers. Expose only the relay through public routing.
+The current native dashboard verifies a wallet's ownership of the Gateway admin
+NFT and displays the policy. Configure rules and native allowances through reviewed
+operator transactions. Sign-in does not authorize a policy change. The Gateway NFT
+controls this application policy, separate from any chain-wide decision.
 
-The default remote-administration path is an SSH port forward from a workstation
-to the Docker host's loopback listener. Open `http://127.0.0.1:4181` locally.
-Direct remote browsing requires private HTTPS: plain LAN HTTP cannot provide the
-browser Web Locks needed to prevent duplicate cross-tab submissions. The current
-[Keychain custody limitations](/apps/keychain/) still apply before privileged
-production use.
+## Authorize an application
 
-## Build and test from the checkout
+Register the application and a service client. Bind a specific connection to the
+exact host, application, client, and authentication method. Give it individual
+rules for the contract methods it needs. A named view or command pins the contract
+code and the complete expected arguments. Review what each read returns before
+granting it.
 
-The Gateway contracts and application use the
-[monorepo toolchain](/developers/sdk/#develop-in-the-monorepo). From a configured
-checkout:
+The relay supports a scoped bearer credential or Cloudflare Access, selected by
+the registered connection. Access requires a signed application assertion with
+the pinned issuer, audience, and exact service-token client ID. The empty user
+subject can be present or omitted in the signed assertion. A failed Access check
+never falls back to bearer authentication. Keep the service credential out of
+browser bundles. [Cloudflare application token claims](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/application-token/#service-token-authentication)
 
-```sh
-bun dapps/Gateway/contracts/build.ts
-bun sdk/scripts/build-dts.mjs
-bun run gateway:verify
-```
+| Operation | Endpoint |
+| --- | --- |
+| Read a pinned contract view | `GET /apps/{application}/views/{rule}?input={encodedArguments}` |
+| Check a managed call | `POST /apps/{application}/preflight/{requestId}` |
+| Submit a managed call | `POST /apps/{application}/commands/{requestId}` |
+| Check the original command | `GET /apps/{application}/commands/{requestId}` |
 
-`RIADCHAIN_RUN_GATEWAY_NATIVE=1 bun test dapps/Gateway/contracts/native.test.ts`
-opts into a short, isolated native regtest test. It verifies actual SDK, wallet
-authentication, relay/protobuf and Rust behavior, then removes its fixture. There
-is no persistent full demo or extra deployed billing network.
+Send `X-Riadchain-Connection-Id` with the registered selector and the associated
+authentication proof. Use the [contract-view value codec](/developers/contract-arguments/)
+for typed arguments. The named view response includes the full native network
+anchor and the policy epoch. Native RPC, global history, FILE uploads, and the
+admin API are outside this listener's scope.
 
-Deployment is separate from compilation. The journaled deployment example
-prepares and simulates by default; explicit `--apply` broadcasts reviewed
-originals subject to an aggregate fee ceiling. Follow
-`dapps/Gateway/README.md` and `apps/Riadchain-gateway/README.md` for protected
-configuration, image packaging, listener routing and exact deployment commands.
-Local checks do not establish a deployed Docker host or public tunnel.
+## Manage signing and recovery
+
+A managed wallet starts paused. Enable it only after reviewing the exact fee
+allowance, target contract and method. The worker signs the restricted call,
+reserves its fee, and records its original bytes before broadcast. Application
+clients hold their service credential. The wallet's signing key remains on the
+Gateway host.
+
+A timeout or lost reply leaves the original pending reconciliation. Check the
+same request ID and require a matching successful execution receipt before
+reporting success. Pausing the wallet prevents new signing and dispatch while
+retaining its journal. Removing a permission stops future authorized calls and
+cannot retract a transaction already admitted by the node.
+
+Applications that poll should bound their request rate and timeout. Keep one
+shared projection when multiple visitors need the same views. Cancel a request's
+timeout after the full response body is consumed so idle serverless runtimes can
+sleep between polls.
+
+For the protected configuration and source-build steps, see
+[the Gateway implementation guide](https://github.com/nfl0/riadchain/blob/master/apps/Riadchain-gateway/README.md).

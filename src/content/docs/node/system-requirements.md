@@ -154,93 +154,39 @@ Two virtual disks on one SSD share its failure risk. Keep verified
 
 ## Allow for request and cache peaks
 
-The node fills its bounded caches as needed. Current defaults include an 8 MiB
-compiled-program cache, 4 MiB SQLite page-cache targets per connection and
-at most the current and previous blocks and receipts in native RAM. Growing
-execution tables and their derived indexes live on disk. Candidates and
-simulations retain changed records over a pinned database snapshot; checkpoint
-creation streams its snapshot instead of cloning the complete active state.
-Older blocks, transactions, receipts and events are queried through the durable indexes and
-logs. These accounting targets do not define total process RSS or reserve all
-future memory when the daemon starts.
+The earlier qualification runs describe their exact binaries and workloads.
+Measure the current node with the actual contract state, account population and
+FILE sizes you expect to serve.
 
-FILE streaming uses bounded chunks, but whole-object text and base64 queries
-allocate buffers for the object and encoded response. The default FILE size
-limit is 300 MiB; processing an object near that limit can require hundreds of
-MiB beyond the small-workload footprint. Concurrent responses, peer catch-up,
-execution and checkpoint work also need temporary memory. Each live database
-reader has its own cache, and long snapshot readers can retain WAL pages on disk.
-Test the actual paths and largest requests your applications will use before choosing a low allocation.
+The current daemon retains a recent receipt cache with a 256-block and
+8 MiB budget, plus a separately bounded recent-events cache. Signed block
+history stays on disk. Transaction and account queries use indexes constructed
+from that history. Older execution can require replay from a verified
+checkpoint, so historical reads may increase CPU and disk I/O. See
+[historical execution](/node/operations/#read-recent-and-historical-execution).
 
-## When RAM headroom runs low
-
-On Linux, the node checks available machine RAM and visible cgroup-v2 memory
-limits, including ancestor limits. It requires **128 MiB of available headroom**
-for shutdown. This is a stopping threshold: the node does not preallocate or
-exclusively own those bytes. State and cache contents allocate as needed. In a
-VM, these checks see guest RAM and guest service limits, not Proxmox host RAM.
-
-Known-size FILE reads also check their temporary buffer needs, including the
-overlap between content, Base64/text and the RPC response. If that request would
-consume the shutdown headroom, it returns a resource-unavailable error. The node
-can continue serving smaller requests, and the archived object stays intact.
-Streaming FILE transfers reuse their bounded buffers.
-
-At or below that reserve, the daemon refuses startup or stops admitting work,
-drains admitted storage work and exits with **status 75**. The journal explains
-the shortage. The packaged service leaves it stopped instead of automatically
-restarting into the same condition. Free memory or increase the VM/service
-allocation, then use the reviewed **Start node** action in Manager's
-[Maintenance](/appliances/everyday-use/#check-machines-in-manager), or start it
-through the local operator tools:
-
-```sh
-free -h
-sudo journalctl -u riadchaind.service -n 30 --no-pager
-sudo systemctl start riadchaind.service
-```
-
-The separate management service remains available when the chain daemon stops.
-Starting an existing stopped chain retains its original history and FILE archive;
-it does not create a replacement network. If RAM is still insufficient, startup
-is refused again rather than automatically retried.
-
-This preventive check cannot guarantee that every sudden allocation or concurrent
-consumer will be detected before the kernel runs out of memory. Leave operating
-headroom; swap does not satisfy the reserve. Keep Linux memory accounting
-available and use the standard unified cgroup-v2 environment supplied by Debian 13.
+FILE uploads and downloads use bounded chunks. A file close to the default
+300 MiB ceiling still uses space for both staged and verified content while
+being admitted. Peer catch-up, local verification and backups also read or
+write archive bytes. Keep enough free disk for that work and for the retained
+copies you actually need.
 
 ## What grows with age and use
 
 | Resource | Main drivers |
 | --- | --- |
-| Disk space | Canonical history, derived execution tables and indexes, receipts, checkpoints, SQLite WAL and confirmed FILE bytes |
-| RAM | Database/compilation caches, changed-record overlays, VM and request working data, per-object FILE archive inventory and process overhead |
-| CPU | Transaction execution, signatures, concurrent queries and operations over active state; replay, verification and checkpoint creation |
-| Disk I/O | Canonical commits, derived table/WAL writes, cold state and historical reads, reconstruction, checkpoints, archive verification and backups |
-| Network bandwidth | New blocks, peer catch-up, client requests and FILE transfers; demand depends on activity and peers |
+| Disk space | Complete signed history, derived indexes and checkpoints, active FILE bytes and staged uploads |
+| RAM | Working state, transaction and VM buffers, recent execution caches and concurrent requests |
+| CPU | Transaction execution, ML-DSA-65 verification, replay, archive verification and checkpoint creation |
+| Disk I/O | History commits, checkpoint creation, archive reads, peer recovery and backups |
+| Network bandwidth | Signed blocks, FILE replication, authentication and client reads |
 
-Disk usage increases even when application state stays unchanged: an eligible
-private chain continues producing blocks at its fixed ten-second cadence.
-Confirmed FILE contents and consensus FILE records stay on disk. The separate
-operational archive inventory retains metadata per object in RAM. Deleting a
-current contract field or spending a UTXO does not remove the historical transaction that changed it.
-
-Native RAM follows the **working set, concurrent work and operational metadata**,
-rather than retaining every active value or old block. Database and compilation
-caches have targets; transactions and VM execution have bounded inputs and effects.
-These are component bounds, not an exact RSS ceiling or proof that every workload
-is leak-free. FILE object count can still increase archive-inventory RAM. Compare
-sustained growth with workload, object counts, active-state counts and memory
-pressure, and leave headroom for temporary execution and response allocations.
-
-An older chain can also take longer to restart, verify or back up. Checkpoints
-reduce state replay, but startup still verifies historical records, reconstructs
-query indexes and checks archived FILE objects. Checkpoint creation streams
-active state from disk, and independent recovery replay uses a separate derived database. Offline CLI verification uses temporary
-scratch: set `TMPDIR` to an existing private directory on a disk-backed filesystem
-when the system temporary directory is memory-backed. Routine CPU, I/O and
-network use need not increase continuously just because the chain is older.
+Even an idle private network accumulates signed blocks while its producer is
+active. Checkpoints reduce work for historical execution queries, but startup
+still verifies signed history and checks required archive data. Measure both
+startup and ordinary operation. Keep host and guest memory headroom separate.
+If a packaged service exits with status 75 for insufficient resources, diagnose
+the relevant limit from its journal and restore headroom before restarting.
 
 ## Measure before increasing capacity
 
@@ -254,9 +200,9 @@ free -h
 systemctl status riadchaind.service riadchain-manager.service
 ```
 
-Use authenticated [node metrics and health](/node/operations/#monitor-readiness-and-convergence)
-to compare daemon resident memory with active UTXOs, contract storage and FILE
-records. Daemon RSS excludes Manager and host caches; Linux filesystem cache can
+Combine [authenticated node status](/node/operations/#monitor-readiness-and-convergence)
+with operating-system metrics to compare daemon resident memory and the
+workload being served. Daemon RSS excludes Manager and host caches; Linux filesystem cache can
 use spare memory, so consider available memory and pressure as well as usage.
 Run archive integrity scans and backups deliberately: both read retained data and
 are unsuitable as frequent lightweight checks.

@@ -1,60 +1,46 @@
 ---
 title: Maintain the FILE archive
-description: Understand native content-addressed storage, verify confirmed objects and recover unavailable bytes.
+description: Verify content-addressed FILE bytes, recover missing objects and clean up canonically retired data.
 ---
 
-Native FILE storage is part of a Riadchain node. A FILE transaction commits a canonical UnixFS CID, size and optional metadata. The object bytes live in the node's content-addressed archive under `files/objects/<cid>`.
-
-Every confirmed CID belongs in the archive. The protocol does not assign per-file retention classes or let a remote IPFS service replace the node's copy. The CID uses an interoperable content-addressing format; it does not imply that another service has the file.
+Native FILE storage is part of a Riadchain node. A FILE transaction commits a UnixFS CID, size and metadata. The node stores verified object bytes separately from signed `history.log` under `objects/`. A CID does not imply that another service has the content.
 
 ## From upload to confirmation
 
-FILE transactions record content references on the chain; object bytes live in the native node archive. Confirmation does not guarantee that every node currently has those bytes. Recovery restores verified content without rewriting chain history.
+The wallet constructs and signs a FILE transaction for an exact CID and size, stages its bytes through authenticated `NetworkService.StageFile` and submits the original transaction. The SDK methods `prepareFile()` and `stageFile()` support this bounded workflow. Staging chunks are at most 1 MiB. The default new-network ceiling is 300 MiB per file. Compare the genesis limits and fees before a large upload.
 
-A client builds a FILE transaction for a specific CID and size, submits it and stages those exact bytes through `FileService`. The SDK exposes `uploadFileBytes()` and `uploadFileText()`.
+The producer verifies length and CID before committing bytes and applies the network's signed peer-acknowledgement policy. A standalone network can confirm with local verification alone. On a network that requires one peer copy, keep that peer reachable and ready. A staged upload has yet to enter the signed history.
 
-The node bounds upload work, checks the bytes against the declared CID and size and installs verified content atomically. Mining requires local content and the active peer-acknowledgement policy. Staging alone neither confirms the transaction nor charges its on-chain fee.
-
-The default policy requires one peer acknowledgement for fresh staged content. Read the active parameters instead of assuming that every network uses the same policy. An existing verified canonical object already satisfies mining readiness without new peer acknowledgements. The producer retains or promotes verified bytes before committing its block.
-
-After a lost submit or upload response, inspect the original transaction and upload status; resume staging against the same transaction ID where appropriate. Creating a second FILE transaction is a new on-chain action and may pay another storage fee.
+After a lost response, inspect the original transaction and resume staging with that same ID if appropriate. Look for a matching successful receipt before reporting confirmation.
 
 ## Check local completeness
 
-For online monitoring, use the operator health snapshot and typed FILE methods such as `fileGetByCid()` and `fileHasContent()`. A confirmed reference or receipt is not proof that the particular node serving a request currently has the bytes.
+Use authenticated status to check whether the archive verified. For one object, retrieve it with `NetworkService.ReadFile` or `NetworkClient.readFile()` and verify its CID and length. A receipt proves the reference was confirmed. A successful read with matching bytes establishes availability on the node that served it.
 
-For offline inspection, stop the daemon and run:
-
-```sh
-riadchain-cli files status --data-dir /var/lib/riadchain
-riadchain-cli files status --data-dir /var/lib/riadchain --cid "<confirmed CID>"
-```
-
-Status reports confirmed CIDs, sizes and local availability. It does not claim a remote replica count. These commands use the same directory lock as the running node and fail if the daemon is active.
-
-## Verify the bytes
-
-Scrubbing reads objects and recomputes their canonical UnixFS CIDs:
+To audit signed history and required local bytes, stop the daemon and run:
 
 ```sh
-riadchain-cli files scrub --data-dir /var/lib/riadchain
-riadchain-cli files scrub --data-dir /var/lib/riadchain --cid "<confirmed CID>"
+riadchain-cli --config /etc/riadchain/node.toml inspect
 ```
-
-Missing or corrupt content produces a failed result. Corrupt objects are quarantined. Plan whole-archive scrubs around disk capacity and other workload; content verification requires reading the objects.
 
 ## Recover missing content
 
-The FILE worker attempts authenticated peer rehydration independently of canonical chain synchronization. Bounded rounds rotate through missing CIDs and peers so one unavailable file does not indefinitely block other recovery attempts. Before adopting bytes, it verifies the confirmed transaction context, CID and size.
+Authenticated peers can supply missing FILE bytes. A node may have verified the signed block history while some objects still need recovery. Check archive completeness separately from block height. Signed history cannot recreate missing bytes. Keep [verified backups](/node/backup-recovery/) in independent failure domains.
 
-Missing confirmed bytes are an archive incident. They do not invalidate previously accepted canonical state or justify rewriting blocks. A node can finish chain synchronization while still reporting an incomplete FILE archive.
+## Retire a file
 
-Recovery requires a verified peer copy or an archive backup. Blocks alone cannot reconstruct object bytes. Use [backup creation with `--files all`](/node/backup-recovery/) and keep copies in separate failure domains.
+The upload owner can sign a retirement of that original FILE transaction. The retirement and the original reference both remain in signed history. If uploads share a CID, the bytes remain required until every active reference is retired.
+
+After confirming the retirement, the operator can stop the node and explicitly reclaim eligible local bytes:
+
+```sh
+riadchain-cli --config /etc/riadchain/node.toml prune-retired-files
+```
+
+Only locally stored bytes covered by confirmed retirement are eligible. Existing backups and copies on other machines may still contain them. Coordinate cleanup separately on each node if desired.
 
 ## Capacity and privacy
 
-There is no automatic garbage collector or operator command to delete confirmed objects. FILE storage has a one-time on-chain fee and no recurring protocol rent, so archive growth is an ongoing operational responsibility.
+FILE storage charges a one-time fee. Plan for the ongoing growth of signed history, retained objects and independent backups. Treat file bytes and metadata as readable to authorized parties with network access. Encrypt sensitive bytes before upload and manage decryption keys separately.
 
-A CID and provenance record do not confer private access or legal ownership. Treat retrievable file bytes and metadata as visible to the parties that can access the network. Applications storing sensitive data must encrypt it before upload and manage their decryption keys separately.
-
-For the authority boundary behind these procedures, read [protocol storage](/protocol/storage/).
+Read [protocol storage](/protocol/storage/) for the distinction between signed references and local bytes.

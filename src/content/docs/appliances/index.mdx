@@ -50,11 +50,11 @@ network verify the same history. A machine with an authorized operational signer
 and enough confirmed coins in its owner account can produce blocks under the
 network's succession rules. Others remain replicas.
 
-The current app setup starts the first machine in the saved request as a funded
-producer and the others as unfunded replicas. You can fund additional machine
-owners through the wallet after launch, while retaining enough available funds
-on existing producers. Multiple eligible producers do not create a voting quorum;
-succession determines who can take over when production stops.
+The current guided setup prepares one machine and four wallet accounts. The
+initial owner and backup owner each receive the default 10,000 RDC. Two
+separate spending accounts receive 100 RDC each. A funded owner and a peer
+connection are separate requirements for a second machine to take over through
+[succession](/protocol/succession/).
 
 Drives are a separate choice. A replica can use less local drive redundancy if
 you accept that risk, but it still needs room for the network's history and files.

@@ -60,26 +60,26 @@ identity string is only a claim until checked against the intended network.
 ## Observe one L1 snapshot
 
 Authenticated [read sessions](/developers/rpc/#snapshot-pinned-contract-reads)
-retain one contract-read snapshot while blocks advance. This example accepts a
-configured provider, a verified deployed checkpoint address and the expected
-network identity; it supplies no public endpoint or universal contract address.
+retain one contract-read snapshot while blocks advance. This example uses the
+[native SDK from the current source checkout](/developers/sdk/#develop-in-the-monorepo).
+Supply a pinned client and a verified checkpoint contract on that network.
 
 ```ts
-import { type RiadchainProvider, type EthAddress } from '@riadchain/sdk/browser';
+import type { NetworkClient, NetworkContractAddress } from '@riadchain/sdk/network';
 
 export async function readCheckpoint(
-  provider: RiadchainProvider,
-  checkpoint: EthAddress,
+  client: NetworkClient,
+  checkpoint: NetworkContractAddress,
   expected: { chainId: string; genesisHash: string },
 ) {
-  return provider.withReadSession(async (session) => {
+  return client.withReadSession(async (session) => {
     if (session.anchor.chainId !== expected.chainId
       || session.anchor.genesisHash !== expected.genesisHash) {
       throw new Error('Unexpected checkpoint network');
     }
     // One read at a time on each session.
-    const metadata = await session.callView(checkpoint, 'getMetadata', {});
-    const head = await session.callView(checkpoint, 'getHead', {});
+    const metadata = await session.callView({ contractAddress: checkpoint, method: 'getMetadata', args: {} });
+    const head = await session.callView({ contractAddress: checkpoint, method: 'getHead', args: {} });
     return { anchor: session.anchor, metadata: metadata.returnValue,
       head: head.returnValue };
   });

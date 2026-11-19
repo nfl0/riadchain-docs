@@ -1,109 +1,65 @@
 ---
 title: Back up and recover
-description: Create offline verified backups, preserve FILE bytes and restore into a clean directory.
+description: Verify complete signed history and active FILE bytes, then restore the original node identity to a new location.
 ---
 
-A Riadchain backup protects two assets: signed canonical chain history and confirmed FILE bytes. History can reconstruct consensus state; it cannot recreate missing file contents.
-
-The native backup commands operate offline and take the node's exclusive data-directory lock. Stop the daemon before creating a backup or verifying a data directory. The examples assume `riadchain-cli` and `riadchaind` are in your `PATH`.
+Keep verified backups outside the node's storage. They contain the complete signed history and bytes for active FILE references. The machine credentials and client RPC token require separate protected copies.
 
 ## Choose what the backup contains
 
-`--files none` is the default. It captures canonical authority without file bytes and reports incomplete archive recovery coverage. Use explicit `--files all` when preserving the archive:
+Stop the daemon before inspecting or backing up its data. Run these commands as the owner of that data with a protected backup destination:
 
 ```sh
-riadchain-cli backup create \
-  --data-dir /var/lib/riadchain \
-  --output /mnt/riadchain-backups/riadchain-snapshot \
-  --files all
+riadchain-cli --config /etc/riadchain/node.toml inspect
+riadchain-cli --config /etc/riadchain/node.toml backup /backups/riadchain-new
 ```
 
-Choose a new output directory for each backup. `--files all` includes and verifies the objects currently present under `files/objects/` and requires every committed FILE at the included chain tip to be present with its exact size. A missing or corrupt committed object rejects creation before the final backup directory is installed. Inspect [archive health](/node/file-archive/) as well as backup verification.
+`inspect --height <height>` selects a signed block for inspection. The backup contains `history.log`, a manifest and verified active FILE bytes. Derived checkpoints, indexes, staged uploads and credentials are outside it. The backup fails if required bytes are missing or signed history is invalid. Retain the verified tip height and full block hash independently so that you can identify older backups.
 
-The backup contains a versioned manifest, signed `genesis.json`, `canonical/blocks.log`, any durable fork evidence and, when selected, FILE objects. It deliberately omits derived receipts, indexes, checkpoints, staged uploads and temporary data.
-
-Keys, RPC tokens and other credentials are not part of this chain backup. Keep separate protected recovery copies and document how to restore the node's configuration without publishing those secrets.
+Save the machine's original `node.json`, `peer.seed` and `producer.seed` separately. Retain the public genesis pin and local storage and network settings. Store any RPC token with your other protected service credentials.
 
 ## Verify before relying on it
 
+Set `GENESIS_PIN` to the full 96-character hash from your trusted setup record.
+
 ```sh
-riadchain-cli backup verify \
-  --backup /mnt/riadchain-backups/riadchain-snapshot
+riadchain-cli verify-backup /backups/riadchain-new --genesis "$GENESIS_PIN"
 ```
 
-Verification checks signed genesis, the strict archive layout, canonical framing and checksums, block hashes and continuity, fork evidence and included FILE CIDs. It then replays the blocks, compares the recorded tip and state commitment, and independently recomputes committed FILE coverage. An all-files backup cannot pass by editing its inventory or coverage to hide a missing committed object. Verification leaves the backup unchanged.
-
-The manifest's `fileArchive.coverage` reports expected and verified committed object/byte totals, with `complete` true only for an all-files backup covering every committed FILE. Additional valid local objects may be included, but do not increase committed coverage. A chain-only backup reports zero verified FILE bytes and `complete: false`; successful verification of that backup does not mean your documents or photos are protected.
-
-Missing committed objects and invalid history reject an all-files backup; verification does not repair or truncate its copied log. Keep another copy on a separate storage device or failure domain. Periodically test a restore rather than assuming a copied directory is sufficient evidence of recoverability.
+Verification checks canonical signed history and the CID and size of every required object against its replayed state. It does not modify the input backup. Verify a second copy on an independent device and periodically rehearse restoration.
 
 ## Restore to a new directory
 
-Restore accepts a nonexistent or completely empty destination. It never merges with an existing chain directory:
+Stop and fence the original machine before starting a recovered copy with the same identity. Supply its separate credential directory and an unused output path:
 
 ```sh
-riadchain-cli backup restore \
-  --backup /mnt/riadchain-backups/riadchain-snapshot \
-  --data-dir /var/lib/riadchain-restored
-
-riadchain-cli replay verify \
-  --data-dir /var/lib/riadchain-restored
+riadchain-cli restore /backups/riadchain-new /private/original-node /restore/new-node
 ```
 
-The restore command verifies the source, stages the destination beside its final path, replays it, verifies included objects, synchronizes the files and installs it atomically. Keep the original damaged or suspect directory for investigation instead of overwriting it.
+For a node that has only ever started standalone, check `standaloneBootstrap` in the backup verification report and add `--standalone` to recover that same authorization. A producer that has already started with peers needs its paired routes even when restoring a backup made earlier.
 
-Prepare a restored-node TOML configuration with the matching genesis artifact, new data path, correct protected key and original peer/schedule settings. Start it through `riadchaind --config <path>`. Production eligibility follows its confirmed spendable balance automatically. Check its chain ID, tip, health and peer convergence. Derived receipts, indexes and checkpoints can be rebuilt from canonical history; allow for that work during recovery.
+Provision the resulting directory on the intended pinned mount. Restore reviewed network settings, ensure the storage identity matches the new volume and start the daemon. Check the original ordinary block hash, readiness, synchronization and FILE content before resuming application writes.
 
 ## Restore a wallet identity
 
-Use the offline native command to turn a backed-up seed into a new node key file. Put the phrase in a protected local UTF-8 file using your trusted editor; never put it in command arguments, environment variables, shell history or support messages.
-
-```sh
-chmod 600 /protected/phrase.txt
-RIAD_RECOVERY_ACCOUNT="<backed-up lowercase account address>"
-
-riadchain-cli wallet restore \
-  --mnemonic-file /protected/phrase.txt \
-  --expected-address "$RIAD_RECOVERY_ACCOUNT" \
-  --key-path /secure/surviving-funded-node.key
-```
-
-The command validates the English BIP39 checksum and defaults to the SDK path `m/44'/60'/0'/0/0`. Supply `--account-index <index>` for another account under that prefix. For a BIP39 passphrase, add `--passphrase-file /protected/passphrase.txt` and restrict that file to mode `600` too. Its exact content is used, including any newline; match your original passphrase precisely.
-
-Each secret file is limited to 4,096 bytes. Recovery refuses an address mismatch or an existing output key, writes a protected key file, and prints only public address/path metadata. Check those values against your recovery record before using the key.
-
-This recovers identity, not funding, chain history or FILE bytes. Restore the signed genesis, canonical history and archive separately using the verified backup workflow above. Preserve the original seed securely after use and remove temporary plaintext copies through your local custody procedure.
+Recover the account with the trusted wallet that created its recovery phrase. For rotated keys, keep the original stable address and the recovery record for its current signing authority. The wallet phrase recovers authority over an account. A replacement machine still needs its own original node credentials, verified signed history and FILE bytes.
 
 ## Resume production with unavailable peers
 
-After a cold restart, a node with configured peers normally needs successful authenticated synchronization before succession. If those machines are unavailable, an operator may explicitly authorize isolated recovery:
-
-```toml
-# recovery-node.toml
-data_dir = "/var/lib/riadchain-restored"
-genesis_file = "/var/lib/riadchain-restored/genesis.json"
-key_file = "/secure/surviving-funded-node.key"
-listen = "127.0.0.1:8545"
-peers = ["http://unavailable-peer.home:8545"]
-# Retain the agreed allowlist and protected P2P credentials.
-```
+A peer-configured node normally needs successful authenticated startup synchronization. To replace a permanently unavailable node, fence it first. Retain an ordinary block's height and full hash that you independently observed. Back up the surviving peer and prepare a protected directory containing its public `node.json`.
 
 ```sh
-riadchaind --config ./recovery-node.toml --recover
+riadchain-cli restore-from-peer /backups/survivor /private/lost-node /restore/new-node \
+  --donor-identity /private/survivor-public \
+  --confirmed-height "$LAST_CONFIRMED_HEIGHT" --confirmed-hash "$LAST_CONFIRMED_HASH"
 ```
 
-Before running this, fence the old producer and isolate the recovery machine. Check the intended signed network and latest recoverable history; an unreachable peer may still be producing elsewhere. The option is not automatic partition resolution.
+The command verifies both machine bindings and requires that exact ordinary block in the surviving history. Install and start the restored node with its paired routes and verify synchronization. For ordinary succession after an outage, an enrolled successor needs a previously confirmed qualifying balance and a fresh authenticated startup sync. An offline network cannot confirm a transfer to fund a successor.
 
-Startup independently replays signed genesis and canonical blocks, compares the resulting tip/state, and verifies every committed FILE's CID and size. Checkpoints are not recovery authority. Missing objects, invalid history and durable fork alarms block recovery. These checks can take time for a large archive.
+## Preserve conflict evidence
 
-You still need a surviving funded signing identity. Keep at least two independent genesis-funded wallet seeds and a distinct seed per recovery machine. A previously unfunded key cannot be funded while the entire chain is stalled; restore a funded identity first. Seed phrases restore keys, while verified backups and replicas restore history and files. Use `wallet restore` above to derive the protected raw key file consumed by native startup.
-
-## Fork evidence survives recovery
-
-If a backup includes `fork-alarm.json`, the restored node retains the fail-stop condition. A verified backup proves the integrity of its recorded evidence and history; it is not permission to erase evidence or silently choose between conflicting histories.
-
-An operator must decide how to resolve a validated fork using the home or company's agreed recovery process. Preserve evidence and compare independently verified histories before changing operational trust anchors.
+Normal backup refuses an unresolved ordinary-branch conflict. A single-branch backup would omit competing signed history. Preserve both stopped nodes' history logs and FILE archives and compare them through the network's agreed recovery process.
 
 ## Recover FILE availability
 
-A chain-only backup can restore valid consensus state while leaving the archive incomplete. Confirmed references will still exist, but the bytes must come from an independently verified archive or authenticated peers. [FILE archive operations](/node/file-archive/) explain status, scrubbing and rehydration.
+Canonical history only contains the commitments to file bytes. Recover missing required content from an authenticated peer or a verified backup. See [FILE archive operations](/node/file-archive/) for verification and retirement.

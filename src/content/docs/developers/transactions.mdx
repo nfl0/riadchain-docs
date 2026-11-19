@@ -1,136 +1,89 @@
 ---
 title: "Transactions, outcomes and recovery"
-description: "Prepare with live parameters, review before signing, persist the original ID, and reconcile execution without duplicate sends."
+description: "Prepare a native transaction, sign the reviewed draft, and reconcile the original ID after submission."
 ---
 
-A reliable write flow separates preparation, approval, signing, broadcast and
-execution. Keep the exact transaction and its original ID throughout. A transport
-error after invoking a broadcast-capable request does not prove the transaction
-was never submitted.
+The examples use the [revision 59 workspace SDK](/developers/sdk/#connect-to-revision-59).
+Keep the transaction's chain, signing account, review identity and original ID
+bound through preparation, approval, signing, submission and recovery.
 
-For direct node submission or a **sign-only wallet**, review and sign before
-broadcast. If a wallet request can itself broadcast, save the original intent
-and ID **before invoking that request**; the wallet performs its own review and
-signing inside it. A polling deadline does not prove failure or permit a fresh
-transaction.
+## Prepare and review
 
-## Prepare with current state
-
-This example prepares an unsigned transfer for a controlled-key application. It
-does not sign or broadcast. The caller supplies its securely managed `LocalSigner`
-and an actual recipient; a dapp should instead keep signing in its connected wallet.
+This function prepares an unsigned transfer with `riad1…` owner and recipient
+addresses. Express amounts and fees in base units.
 
 ```ts
-import {
-  type RiadchainProvider, type LocalSigner, type EthAddress,
-} from '@riadchain/sdk/browser';
+import type { NetworkClient } from '@riadchain/sdk/network';
 
-export async function prepareTransfer(
-  provider: RiadchainProvider,
-  signer: LocalSigner,
-  recipient: EthAddress,
+export function prepareTransfer(
+  client: NetworkClient,
+  owner: string,
+  recipient: string,
   amount: bigint,
-  expectedChainId: string,
+  maxFee: bigint,
 ) {
-  const [chainId, utxos, params, height] = await Promise.all([
-    provider.getChainId(),
-    provider.getUtxos(signer.address),
-    provider.getProtocolParams(),
-    provider.getLatestHeight(),
-  ]);
-  if (chainId !== expectedChainId) throw new Error('Wrong chain');
-  return signer.buildTransfer(recipient, amount, utxos, {
-    chainId, expiryHeight: height + 20, protocolParams: params,
-  });
+  return client.prepareTransfer({ owner, recipient, amount, maxFee });
 }
 ```
 
-The `20`-block lifetime is an application choice, not a protocol default. Read the
-node's active parameters for fees and limits. Transfer, sweep, deploy and ordinary
-call builder options accept `protocolParams`; do not assume every builder exposes
-the same option.
+Inspect the draft's `intent`, fee, change, expiry height, chain and original ID.
+Bind approval to `approvalId`; use `encodeNetworkDraft` and
+`decodeNetworkDraft` if you need to store the exact draft across that step.
+On approval, `client.sign(draft, signer)` validates the draft, the ML-DSA-65
+signer and the account's current key epoch. Recheck the active wallet session
+and any application assumptions that could have changed since review.
 
-Freeze or clone the prepared intent before review. Show recipient, amount,
-method/value where applicable, gas limit, fee budget, expiry, chain and local ID.
-After approval, recheck account/session, chain, input availability, expiry and
-contract state relevant to the action. `assertSigningTransaction` checks ordinary
-input ownership, chain and canonical digest; it does not perform all these live
-checks or authorize a delegated capability transaction.
-
-Sign only after approval. Node simulation requires a valid signed transaction;
-do not sign an unapproved intent merely to obtain a preview. Signed simulation is
-not a guarantee about the state when the transaction is later included. FILE
-staging has its own admission lifecycle.
+Keep secrets in the wallet or a protected non-browser service. If a wallet
+method can broadcast itself, save the original ID and reviewed intent before
+invoking it. Native simulation requires a signed original and reports execution
+against the selected tip; obtain approval before signing a simulated intent.
 
 ## Journal before broadcast
 
-Persist a record scoped to account, chain and action before invoking a send. At a
-minimum retain the local ID, canonical intent, phase and enough metadata to
-reconcile it. Attachment and invitation flows also need their original encrypted
-bytes or credentials. If persistence fails before invocation, do not send.
-
-Serialize writes immediately. Keep unresolved inputs reserved locally, and use a
-cross-tab or process lock where more than one surface can submit for the account.
-Account/network/navigation changes invalidate the reviewed session.
-
-For a direct node submission, this helper illustrates the broadcast boundary.
-The journal implementation is supplied by the application; the transaction must
-already have passed review and signing checks.
+This helper accepts an already reviewed and signed transaction. The application
+must implement durable storage scoped to its chain and account.
 
 ```ts
 import {
-  waitForTransactionOutcome,
-  type RiadchainProvider, type Transaction,
-} from '@riadchain/sdk/browser';
+  encodeNetworkSubmission,
+  type NetworkClient,
+  type NetworkSignedTransaction,
+} from '@riadchain/sdk/network';
 
 export async function submitReviewed(
-  provider: RiadchainProvider,
-  signed: Transaction,
-  persistBeforeSend: (tx: Transaction) => Promise<void>,
+  client: NetworkClient,
+  signed: NetworkSignedTransaction,
+  save: (id: string, bytes: Uint8Array) => Promise<void>,
 ) {
-  await persistBeforeSend(signed);
+  await save(signed.id, encodeNetworkSubmission(signed));
   try {
-    const acknowledgement = await provider.sendTransaction(signed);
-    if (acknowledgement.tx.id !== signed.id) throw new Error('ID mismatch');
+    return await client.submit(signed);
   } catch {
-    return { txId: signed.id, status: 'unknown' as const };
+    return { id: signed.id, status: 'unknown' as const };
   }
-  const outcome = await waitForTransactionOutcome(provider, signed.id, {
-    timeoutMs: 120_000, pollIntervalMs: 2_000,
-  });
-  return { txId: signed.id, ...outcome };
 }
 ```
 
-An acknowledgement with the expected ID establishes submission evidence. Check
-the execution outcome before reporting that the requested action completed.
+A returned acknowledgement identifies the original attempt. Use
+`getTransaction(id)` or `waitForTransaction(id, { timeoutMs: 120_000 })` to
+reconcile it. Concurrent account writes should share a submission lock and keep
+inputs reserved for an unresolved original.
 
 ## Interpret outcomes precisely
 
-| Evidence | Meaning |
+| Observation | Meaning |
 | --- | --- |
-| `pending` | Visible in this node's mempool; execution is not final |
-| Block inclusion without a receipt | Included, execution still unknown |
-| Matching successful receipt | `confirmed` with `executionStatus: 'succeeded'` |
-| Matching failed receipt | `failed`; inspect error and fee charged |
-| Timeout, missing transaction or mismatched receipt | `unknown`; keep the original ID |
+| `queued` | The node has retained the original for processing. |
+| `confirmed`, `success: true` | The matching signed transaction executed successfully. |
+| `confirmed`, `success: false` | The matching transaction was included and execution failed. Inspect the [execution page](/developers/rpc/#account-history-and-block-execution). |
+| `rejected` | The node records rejection of that original. |
+| `unknown`, timeout or lost response | Keep the original and reconcile it again on the same chain. |
 
-`waitForTransactionOutcome` binds the receipt to transaction ID, block index and,
-when present, block hash. Both success and execution status matter. Its total
-deadline bounds polling; cancelling a poll does not cancel a submitted transaction.
+When retrying an identical submission, recover the signed artifact with
+`decodeNetworkSubmission(savedBytes)`. A missing observation never proves that
+another endpoint did not receive it. Review a new transaction only after the
+original is settled or proven incapable of execution, including its expiry and
+input status. Keep the same signed artifact and bytes for
+[FILE staging](/developers/files/#stage-the-signed-original-before-submitting).
 
-## Recover the original attempt
-
-On reload, check the saved ID against the same chain. An absent mempool entry is
-not proof of failure: it may be included, evicted or temporarily unavailable on
-this node. A failed receipt is terminal execution evidence. A proved pre-invocation
-abort is a different state from a send whose response was lost.
-
-Only offer a fresh transaction after the original attempt has been settled or
-you have proved it cannot execute, including the relevant expiry and unspent-input
-checks. If retrying an unresolved upload, use the original FILE transaction and
-bytes. Never silently rebuild an uncertain operation with a new ID.
-
-Source: [outcome classifier](https://github.com/nfl0/riadchain-sdk/blob/master/src/sdk/transactionOutcome.ts),
-[signing policy](https://github.com/nfl0/riadchain-sdk/blob/master/src/sdk/signingPolicy.ts),
-[builders](https://github.com/nfl0/riadchain-sdk/blob/master/src/lib/txUtils.ts).
+[Revision 59 transaction SDK](https://github.com/nfl0/riadchain/blob/a54ba6e54f167b0a90d7cf182d2290375af8aca1/sdk/network.ts)

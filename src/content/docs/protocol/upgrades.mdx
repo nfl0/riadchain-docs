@@ -1,66 +1,59 @@
 ---
 title: Protocol upgrades
-description: Coordinate new consensus rules at an agreed block height and preserve verifiable history.
+description: Learn how networks coordinate new consensus rules at an agreed height and preserve verifiable history.
 ---
 
-A network upgrade (NU) changes the rules a node uses to validate and execute
-blocks. Operators agree outside the chain on the rule set and its activation
-height. They install compatible software and configure every participating node
-with the same schedule. There is no chain admin key or on-chain vote. Contracts
-have their own [authorization rules](/build/abi-and-guards/).
+A network upgrade (NU) changes the rules nodes use to validate and execute
+blocks. Operators agree on the rules and activation height outside the chain.
+Each node needs software with the same rules and the same activation plan.
+An application administrator has authority over its
+[contract](/build/abi-and-guards/), separate from the network's rules.
 
 ## Independent protocol IDs
 
-In releases that support scheduled upgrades, each rule set has a numeric protocol
-ID. The block commits that ID in its signed history. Package versions identify
-node software, and multiple releases can support the same rules. Installing a
-package leaves the configured schedule in effect.
+A signed block commits a numeric protocol ID. It identifies consensus and
+execution rules. A node package version identifies software. Multiple package
+revisions can implement the same rules.
 
-Check the release notes for scheduler support and the supported IDs. A fresh
-post-quantum network starts with the rules shipped for its
-[signed genesis](/protocol/genesis/). The initial post-quantum node release
-does not implement a height-based upgrade scheduler.
+The current private release starts with protocol ID **3** from its
+[signed genesis](/protocol/genesis/). Storage scans, typed hashing, authenticated
+chain context and the other initial VM capabilities are available on a fresh
+network. Installing a newer package that implements these rules preserves the
+original chain. Use the installed CLI to check its supported rule IDs:
+
+```sh
+riadchain-cli protocol capabilities
+```
+
+The current private release does not have a configurable height-based scheduler.
+A future upgrade requires a release that implements both the proposed rules and the
+agreed activation mechanism. Manager currently installs signed node software
+per machine. Follow the [appliance update workflow](/appliances/updates-and-help/)
+and the network's own maintenance plan.
 
 ## Execution at an activation
 
-The new rules apply starting with the activation block. Historical blocks replay
-under the rules selected for their original heights. A node that reaches an
-activation without support for the configured ID stops at that boundary.
+In a release with scheduled activation, the new rules apply beginning with the
+agreed block. Older blocks replay with their original rule IDs. A node lacking
+the scheduled rules must stop at that boundary. Otherwise, participants could
+accept different results for the same signed history.
 
-Charlie execution uses the enclosing block's rules, including nested and due
-scheduled calls. Contract views use the current tip's rules. Admission and
-simulation use the next block's rules, so their readiness can change one block
-before the first block under the new rules.
+Nested calls and due scheduled calls share the enclosing block's execution
+rules. Current-state views use the tip's rules. Admission and simulation for
+the next block can begin using an upcoming ruleset before that first block is
+produced.
 
-## Schedule a supported upgrade
+## Coordinate a supported upgrade
 
-1. Confirm support on every producer and recovery node. Verify a backup of signed
-   history, FILE bytes, and the current public schedule.
-2. Agree on a height above the chain tip. Keep existing schedule entries and
-   append the new `target_protocol_version` and `activation_height` to the JSON
-   file. Protocol IDs and heights must increase.
-3. Where available, validate the proposed schedule on each stopped node before
-   installing it. Point each node's TOML `protocol_upgrades_file` to the same
-   reviewed schedule. Bring the nodes back online and verify their schedules
-   before activation. Keep the agreed schedule with the recovery kit.
-4. At activation, confirm that the nodes accept the same first block under the
-   new rules and continue from its signed hash.
+1. Read the release's activation instructions. Confirm support on producers,
+   following nodes and recovery machines.
+2. Verify a [backup of signed history and FILE data](/node/backup-recovery/)
+   and agree on the same future activation height.
+3. Install the supporting release and apply its activation procedure on each
+   machine. Compare the agreed rule ID and height before the activation block.
+4. Verify that participants accept the same signed activation block and
+   continue producing and synchronizing normally.
 
-```sh
-riadchain-cli --config /etc/riadchain/node.toml protocol check-upgrade \
-  --protocol-upgrades /absolute/path/proposed-upgrades.json
-```
-
-On releases that expose this command, the check verifies signed genesis and
-historical block IDs against the existing schedule and checks that the proposal
-only adds future entries. It reads signed history without re-executing
-transactions or checking FILE bytes. Keep [full replay and archive verification](/node/backup-recovery/)
-for recovery and integrity checks.
-
-## Inspect readiness
-
-On releases with the scheduler, `NodeService.GetProtocolInfo` and SDK
-`getProtocolInfo()` report the active ID, supported IDs, next-block compatibility
-and configured schedule. `riadchain-cli protocol capabilities` reports the local
-binary's support before maintenance. Manager exposes **Schedule network upgrade**
-when the appliance supports it. Apply and verify the agreement on every machine.
+Retain the activation record with your recovery material. A historical block
+keeps the rules committed by its signature. Do not edit its historic activation
+to resolve a failed installation or a disagreement between operators.

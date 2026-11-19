@@ -84,23 +84,12 @@ timeout or wall-clock age does not authorize a replacement. See
 ## Run an isolated reference
 
 Install the [monorepo dependencies](/developers/sdk/#develop-in-the-monorepo)
-and use a current native binary with
-the [funded regtest launcher](/node/regtest/):
+and build the native daemon, CLI and workstation wallet. The
+[Ping native exercise](https://github.com/nfl0/riadchain/blob/master/dapps/Ping/PQ_MIGRATION.md#required-interfaces)
+starts fresh private nodes and uses disposable accounts. It checks dashboard
+sign-in, delegated checkpoint publication, FILE retrieval on a second node and
+recovery of the original publication.
 
-```sh
-bun run regtest:start
-bun dapps/Ping/scripts/deploy.ts --config "$PWD/.tmp/regtest/deployment.json"
-bun dapps/Ping/scripts/deploy.ts --config "$PWD/.tmp/regtest/deployment.json" --apply
-```
-
-The launcher produces a genesis-pinned version-2 deployment input with explicit
-admin, fee and FILE limits. The plan command prepares local identities and its
-journal without broadcasting. `--apply` spends disposable regtest funds and writes
-a manifest only after matching successful execution receipts.
-
-See the [Ping README](https://github.com/nfl0/riadchain/blob/master/dapps/Ping/README.md)
-for builds, configuration and qualification. Historical private deployment records
-from October 21–22, 2026 describe an earlier revision; this v2 source guide does
-not establish that those services have been replaced. A live installation requires
-its own authorized deployment, protected configuration, verified cutover and admin
-NFT handover. No universal live contract address is supplied.
+For your own installation, follow the [Ping README](https://github.com/nfl0/riadchain/blob/master/dapps/Ping/README.md)
+for build and configuration details. Use the contract and permissions verified on
+your own network.

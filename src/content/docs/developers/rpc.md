@@ -1,167 +1,110 @@
 ---
 title: "Typed RPC and contract views"
-description: "Use Connect and protobuf queries, handle wire types and pagination, and understand the synthetic context of public views."
+description: "Use the native NetworkService with a trusted chain identity, bounded history pages, and snapshot-pinned contract reads."
 ---
 
-Node queries use Connect RPC with the schema in `proto/riadchain.proto`. The SDK
-wraps generated services and converts their values into application-facing types.
-Use this path rather than adding a parallel REST contract for ordinary queries.
+Revision 59 serves Connect/protobuf methods under `/riadchain.v1.NetworkService/`.
+For example, the status route is `/riadchain.v1.NetworkService/GetStatus`.
+Use the generated client for framing and errors. The [workspace NetworkClient](/developers/sdk/#connect-to-revision-59)
+verifies the response against the configured chain or genesis pin and converts
+protobuf values to application types.
 
-## SDK wrappers first
+| Read | Workspace SDK |
+| --- | --- |
+| Status and account balance | `getStatus()`, `getAccount(address)` |
+| Signed blocks and original transaction details | `listBlocks({ limit })`, `getBlock({ height, expectedBlockHash })` |
+| Account transactions | `listAccountTransactions({ address, limit, anchor, before })` |
+| Execution receipts, events and call tree | `getBlockExecution({ height, expectedBlockHash, offset, limit })` |
+| Contract events | `listEvents({ contractAddress, eventName, anchor, ... })` |
+| Contract view | `callView({ contractAddress, method, args })` |
+| FILE references and content | `listFiles()`, `readFile()` |
+
+## Account history and block execution
 
 ```ts
-import { type RiadchainProvider, type EthAddress } from '@riadchain/sdk/browser';
+import type { NetworkClient } from '@riadchain/sdk/network';
 
-export async function readAccountPage(
-  provider: RiadchainProvider,
-  account: EthAddress,
-  pageToken = '',
-) {
-  const page = await provider.getUtxosPage(account, { limit: 50, pageToken });
-  return { utxos: page.utxos, nextPageToken: page.nextPageToken };
+export async function accountHistory(client: NetworkClient, address: string) {
+  const latest = await client.listAccountTransactions({ address, limit: 10 });
+  const older = latest.before
+    ? await client.listAccountTransactions({
+        address, limit: 10, anchor: latest.anchor, before: latest.before,
+      })
+    : undefined;
+  return { latest, older };
 }
 ```
 
-Request one page when the UI needs one page. Use the returned cursor, preserve
-account/chain scope, and reject repeated cursors or malformed responses. Native
-query APIs use different pagination shapes: UTXOs use a page token, contract
-storage uses a cursor, and indexed events use offset plus `hasMore`.
+Account history is newest first by signed block height and transaction position.
+It includes signed originals involving the queried account as input owner,
+output recipient or signer. A row's `success` reports execution. Keep the
+original anchor for every continuation. If the node can no longer verify that
+anchor, start a new list and discard the old continuation.
 
-Contract storage pages also bound encoded entries to 8 MiB. A page can contain
-fewer entries than requested; follow its returned cursor rather than assuming a
-short page is the end. Prefer a specific public view when the UI needs one known
-value, instead of fetching all storage to find it.
+Read a block's signed transaction page with `getBlock`. For full execution
+details, call `getBlockExecution` with the same block height and hash and follow
+`nextOffset`. The node serves recent execution output from its receipt cache.
+For older blocks it finds a suitable checkpoint and replays signed history.
+`replayed` identifies this slower path. Cache eviction leaves signed blocks
+available. Execution details can be bounded by the
+response size, as indicated by each receipt's `detailsComplete` flag.
 
-SDK amounts often become `bigint`; some public DTO fields remain decimal strings.
-Generated protobuf `int64`/`uint64` fields are generally JavaScript `bigint`, while
-SDK wrappers may expose safe application heights as numbers. Inspect the declared
-type at the boundary instead of converting every number or string generically.
-Protobuf booleans are actual booleans, including `false`.
+## Contract events
 
-## Direct generated clients
-
-For custom integrations, this function uses the generated Node service directly.
-The relative import assumes a TypeScript file at the repository root.
-
-```ts
-import { createClient } from '@connectrpc/connect';
-import { createConnectTransport } from '@connectrpc/connect-web';
-import { NodeService } from './lib/gen/proto/riadchain_pb.ts';
-
-export async function readRawStatus(nodeUrl: string) {
-  const transport = createConnectTransport({
-    baseUrl: nodeUrl, useBinaryFormat: true, defaultTimeoutMs: 10_000,
-  });
-  const node = createClient(NodeService, transport);
-  const status = await node.getStatus({});
-  return { ready: status.ready, height: status.latestBlockIndex };
-}
-```
-
-The service-qualified HTTP route for this method is
-`/riadchain.v1.NodeService/GetStatus`. Use the generated client for framing and
-errors; do not treat protobuf request bodies as arbitrary JSON.
+Start with `listEvents({ contractAddress })` for the recent cache. To continue
+within the same event window, pass its returned `anchor`, `fromHeight` and
+`offset`. To inspect an older window, request `historical: true` with the anchor
+and `beforeHeight`. With no `fromHeight`, the node chooses a checkpoint-aligned
+start for the requested window. Keep the same contract and event filter across
+pages. Historical replay shares a bounded worker with old execution queries, so
+allow a longer deadline and avoid issuing many replay requests at once.
 
 ## Public contract views
 
 ```ts
-import { type RiadchainProvider, type EthAddress } from '@riadchain/sdk/browser';
+import type { NetworkClient } from '@riadchain/sdk/network';
 
-export async function readCounter(provider: RiadchainProvider, address: EthAddress) {
-  const result = await provider.callView(address, 'get', {});
+export async function readCounter(client: NetworkClient, contractAddress: string) {
+  const result = await client.callView({ contractAddress, method: 'get' });
   if (typeof result.returnValue !== 'bigint' || result.returnValue < 0n) {
     throw new Error('Invalid counter result');
   }
-  return result.returnValue;
+  return { count: result.returnValue, height: result.height };
 }
 ```
 
-`callView` handles its contract-value codec. Pass logical values such as `{ id:
-1n }`; do not pass transaction argument markers pre-encoded for this path.
-Validate the returned value's actual shape; a TypeScript generic is not runtime
-validation.
-
-Contract-view and storage RPCs carry bounded JSON values inside protobuf. Their
-integer envelope is
-`{"$riadchain.type":"bigint","$riadchain.value":"42"}`; the SDK returns
-JavaScript `bigint`. Those two keys are reserved at this RPC boundary. Integer
-text must be canonical, with no whitespace, plus sign, leading zero or negative
-zero. Use the provider codec instead of constructing envelopes yourself.
-
-The signed transaction argument marker is a different adapter. A record shaped
-like that marker remains ordinary data in typed RPC views; the browser's direct
-JSON bridge retains its signed-marker restriction. See
-[contract arguments](/developers/contract-arguments/) for the correct input path.
-
-The public view RPC provides no wallet sender override. The node uses the contract
-address as synthetic sender, zero native value, a synthetic transaction ID, and
-the local tip's block/time context. Execution effects are not committed. A view
-cannot prove that an authenticated write by a specific account will succeed.
-Expose genuine public read methods and fetch per-account state through explicit
-validated arguments where the contract supports it.
+Pass logical arguments such as `{ id: 1n }`. The SDK handles the RPC codec and
+returns typed values. Validate the actual return shape. A view uses a synthetic
+execution context and commits no effects. A view can expose explicit,
+contract-validated account arguments; it cannot impersonate a caller or
+establish that a signed write will succeed.
 
 ## Snapshot-pinned contract reads
 
-Ordinary contract reads observe a moving tip. When several views or storage pages
-must agree, use `provider.withReadSession(callback, options)` to acquire one
-authenticated immutable contract-read snapshot. Inside the callback, call
-`session.callView(contract, method, args)` and
-`session.getContractState(contract, { storageCursor, storageLimit })` sequentially.
-Their `readAnchor` must match `session.anchor`; the restricted SDK client checks
-that match automatically. The [checkpoint guide](/build/application-checkpoints/#observe-one-l1-snapshot)
-contains a complete example with network-identity checks.
+Use `client.withReadSession(callback, options)` when several views must agree
+on one state. Call `session.callView({ contractAddress, method, args })` and
+`session.getContractCodeIdentity(contractAddress)` sequentially. The returned
+values are checked against the session anchor, which includes the chain, genesis,
+block height and hash, state root, protocol and time.
 
-The anchor includes chain ID, genesis hash, block height/hash, state hash, protocol
-and timestamp. `session.expiresAtUnixMs` reports expiry. The native node retains at
-most eight sessions, each for a fixed 30 seconds and at most 128 blocks of lag.
-There are two simultaneous snapshot reads per node and one active read per handle.
-Close promptly so retained state readers can be released. `withReadSession` closes
-on exit; manual `openReadSession` users must call `session.close()` in `finally`.
-
-The generated `ContractService.OpenReadSession` accepts an optional exact current
-block hash; SDK `openReadSession({ expectedBlockHash })` and the second argument
-to `withReadSession` expose that check. It does not select arbitrary historical
-state. `GetState` and `CallView` carry `read_session_id` and return `read_anchor`;
-`CloseReadSession` releases the handle. Normal node authentication applies to
-opening, reading and closing. Configure it through the provider's protected token
-or an explicitly permitted relay; never embed a private node token in a public
-frontend.
-
-Restart, expiry or excess lag invalidates the handle. Capacity exhaustion is not
-an empty result. Do not reopen automatically midway through a logical read or mix
-partial pages with a new snapshot. A handle grants no mutation or simulation
-authority, and its anchor is not a portable proof of state or finality. These
-operational RPC limits are independent of protocol activation.
+The session begins at the current tip. Pass `{ expectedBlockHash }` to require a
+specific current tip. Each session lasts up to 30 seconds and permits up to
+128 blocks of lag. A node retains up to eight sessions and serves up to two
+concurrent reads across them. `withReadSession` closes on exit, while manual
+`openReadSession` use needs `session.close()` in `finally`. Read promptly within
+the expiry. If the session expires, falls behind or is lost on node restart,
+discard the partial result and repeat the whole read. Snapshot handles grant no
+write authority and are scoped to the node that issued them.
 
 ## Errors and freshness
 
-Catch RPC failures and distinguish unavailable data from an empty result. A failed
-balance query is not zero. Scope in-flight results to the entity and chain that
-started the read; a late response must not overwrite a new route or account.
+Distinguish failure from absence. A failed balance query is unknown. Preserve
+the original ID if a transaction cannot be found, and reconcile it before any
+retry. Set deadlines, bind responses to the initiating chain and entity, and
+bound pagination and concurrency.
 
-The provider wraps typed Connect failures in `RiadchainNodeError`, exported from
-`@riadchain/sdk/browser` and the main SDK entry point. For generated Connect
-calls, its `code` is a numeric Connect status, such as `Code.NotFound` from
-`@connectrpc/connect`. Other failures can remain ordinary errors, and FILE HTTP
-helpers can report HTTP status codes instead.
+For source changes, edit `proto/riadchain.proto` and run `npm run proto:generate`
+with the repository's pinned generator and `protoc`. Rust bindings are generated
+by the node build. Keep the schema, handler and SDK conversion aligned.
 
-Do not interpret a transaction `NotFound` response as proof that a broadcast
-never occurred. Preserve its original ID and reconcile the outcome before any
-retry. Set deadlines and bound response processing, concurrency and total
-pagination work.
-
-## Schema changes
-
-Edit the protobuf source and regenerate the tracked TypeScript bindings:
-
-```sh
-npm run proto:generate
-```
-
-This requires `protoc` and the installed generator. Rust bindings generate through
-the node's `build.rs`; keep the Rust handler, generated client and SDK conversion
-in agreement. Hand-editing generated TypeScript will not survive regeneration.
-
-Source: [protobuf services](https://github.com/nfl0/riadchain-sdk/blob/master/proto/riadchain.proto),
-[provider conversions](https://github.com/nfl0/riadchain-sdk/blob/master/src/sdk/provider.ts),
-[native view context](https://github.com/nfl0/riadchain/blob/master/rust/riadchain-node/src/node.rs).
+[Revision 59 protobuf schema](https://github.com/nfl0/riadchain/blob/a54ba6e54f167b0a90d7cf182d2290375af8aca1/proto/riadchain.proto)

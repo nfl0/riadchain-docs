@@ -8,13 +8,14 @@ description: Install a signed node update from your phone and check unfinished o
 1. Obtain a signed **`.riadupdate`** bundle from the trusted release channel
    supplied with your installation. Manager has no built-in download catalogue yet.
 2. Open Manager's **Updates**, select the intended paired machine and choose
-   **Import update**. The first preview has not been verified.
-3. Choose **Transfer and verify**. Wait for the machine to confirm its publisher
-   and package. Do not install an unverified preview.
+   **Import update**. **Local preview · not verified** shows the file's claims.
+3. Choose **Transfer and verify**. Wait for **Publisher verified by machine**
+   before reviewing the actual package.
 4. Choose **Review installation**, confirm the machine and version, then
    authorize installation on the phone.
 5. Use **Check saved install** until the original job, expected package and healthy
-   original network confirm completion. Repeat individually for other machines.
+   original network confirm completion. Choose **Dismiss completed update** after
+   verifying success. Repeat for each intended machine.
 
 <figure className="app-screen">
   <img src="/images/appliances/manager-updates.webp" alt="Manager Updates screen before pairing, with the Import update workflow available after choosing a machine." width="720" height="1440" loading="lazy" />
@@ -25,7 +26,8 @@ The phone needs a reachable local or private route to the machine. It can carry
 the downloaded bundle onto an internet-isolated LAN; the machine does not need
 public internet for this transfer. This is not a physically disconnected update.
 
-Linux, Manager and the wallet use their own update procedures.
+Linux, Manager and the wallet use their own update procedures. A node package
+update does not change the [network's consensus rules](/protocol/upgrades/).
 
 ## When an operation is uncertain
 
@@ -38,10 +40,49 @@ does not automatically repeat the operation. Where an explicit retry is offered,
 it uses that original request; do not clear app data, generate fresh keys or
 submit a replacement network.
 
-If the machine has no saved schedule job, **Review saved request** can send that
-original ID after review. If its height or schedule is now stale, the machine
-records a failed outcome before any configuration change. A completed schedule
-remains recognized when later agreed upgrades extend it.
+If transfer is interrupted, retain the imported file and select **Resume
+transfer**. **Transfer and verify** remains the action while the machine has
+confirmed zero bytes. If installation is uncertain, keep the original operation
+reference and use **Check saved install** before making another request.
+
+## Prepare a signed bundle
+
+Release operators and agents need access to the implementation checkout, a
+matching Debian builder and the target's trusted publisher public key. Confirm
+the installed package, architecture and network format. Choose a strictly newer
+package revision and a release sequence above the appliance's accepted sequence.
+Build the exact reviewed source with the pinned toolchain. Qualify that package
+against a disposable node's existing signed history, checking the original
+block anchor, normal startup and known FILE bytes.
+
+With `NODE_DEB`, `PUBLISHER_KEY`, `RELEASE_SEQUENCE` and `BUNDLE` set to the
+reviewed values, run the implementation's builder from the repository root:
+
+```sh
+python3 scripts/build-appliance-update.py \
+  --node-deb "$NODE_DEB" --signing-key "$PUBLISHER_KEY" \
+  --sequence "$RELEASE_SEQUENCE" --genesis-format ml-dsa-65 \
+  --protocol-id 3 --output "$BUNDLE"
+```
+
+Use the qualified binary's actual IDs from `riadchain-cli protocol capabilities`.
+The example uses the current private release's ID. The publisher signs locally
+with the key already trusted by the appliance. If it is encrypted, the operator
+enters its passphrase privately at the local Minisign prompt.
+
+Verify the bundle using the appliance verifier and trusted public key. Set
+`STAGING` to an empty protected directory and choose the exact target architecture:
+
+```sh
+riadchain-update verify --bundle "$BUNDLE" \
+  --publisher-key /etc/riadchain-manager/publisher.pub \
+  --architecture amd64 --extract "$STAGING"
+cmp -- "$NODE_DEB" "$STAGING/node.deb"
+sha256sum "$BUNDLE"
+```
+
+Provide the operator the bundle path, expected revision and SHA-256. The package
+build, bundle signature and successful live installation are separate results.
 
 ## Common checks
 
@@ -52,7 +93,8 @@ remains recognized when later agreed upgrades extend it.
 | Stopped: insufficient RAM | Increase available machine/VM RAM or its service limit, then review Start node in Maintenance. The management service can remain available while the chain daemon is stopped. |
 | Stopped: service failure | Have the operator inspect the node logs before attempting Start node; starting does not repair corrupted history or replace missing FILE bytes. |
 | Certificate could not be verified | Machine identity and both devices' clocks. Keep verification enabled. |
-| Updates unavailable | Have the installer check the provisioned publisher trust key. |
+| Status unavailable or network unknown | Refresh on the machine's private network. If it persists, ask the operator to check the paired address and both services. Keep the imported bundle and pairing. |
+| Updates unavailable or publisher rejected | Ask the operator to check the provisioned publisher public key and exact bundle. |
 | Preparation failed | Read its stated reason and check all original outcomes. A failed job differs from an uncertain or partially installed job. |
 
 ## What the current repair controls do

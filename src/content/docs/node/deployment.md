@@ -49,10 +49,10 @@ machines does not create Byzantine quorum finality.
 - **Network operators** agree on chain identity, initial allocations, validator
   keys, enrollment, endpoint access and recovery procedures.
 - **The active validator** produces blocks while its confirmed spendable balance
-  meets the minimum. Any funded signing account can be a timed successor; no
-  separately governed validator registry or local mining switch is required.
+  meets the minimum. An enrolled node holding the required signing authority
+  can take over in its timed window once its owner's balance qualifies.
 - **Followers** verify and replay history. They can retain FILE bytes, but a peer
-  invitation alone does not make them successors.
+  connection alone does not make them successors.
 - **Wallet and application users** connect to an endpoint supplied by the operator.
   They do not need to create genesis or run a daemon.
 
@@ -67,29 +67,19 @@ authentication](/node/configuration/#authenticate-client-and-peer-traffic).
 Use an appropriate private network or TLS-protected access path. Do not embed
 operator credentials in a public application bundle.
 
-Agree on the expected genesis hash over a trusted channel. Give each joining node
-a distinct key and a verified [peer invitation](/node/operations/#enroll-a-follower).
+Agree on the full genesis hash over a trusted channel. Prepare separate
+[peer credentials and reciprocal routes](/node/operations/#enroll-a-follower).
 Keep clocks synchronized and verify peer reachability and synchronization.
 
 ## Prepare for files and recovery
 
-The default policy requires one peer acknowledgement before fresh FILE content
-can be mined. Configure a reachable authenticated peer for that policy. For a
-standalone private archive, explicitly set `[genesis].file_min_peer_acks = 0`
-before signing genesis. This preserves local content verification but removes the
-required peer copy; mirrored drives do not provide a separate-machine recovery
-archive. The policy remains fixed for the network after genesis is signed.
+The native setup can start standalone with local FILE verification. A network
+configured to require one peer acknowledgement needs a reachable archive peer.
+Choose the signed policy at genesis. Mirrored drives do not provide an
+independent recovery copy.
 
-Keep verified backups of [both history and archive bytes](/node/backup-recovery/),
-and protected key backups separately. Fund an independent offline rescue wallet
-in genesis. Give each machine a distinct owner account and operational signer;
-fund its owner before an outage when automatic takeover is desired. The appliance
-wallet derives distinct replica owners from indexed accounts under its Recovery
-phrase. Below the minimum, a machine remains an archive replica. A seed recovers
-signing authority, not missing files or history. Use independent storage and define who
-responds to missing content, corruption or a validated fork alarm. Permissioning
-does not make plaintext content confidential; encrypt sensitive files before upload.
-
-After installation, [create through the apps](/appliances/first-network/) or use
-the [manual network CLI](/node/quickstart/). If the network already
-exists, [join through its operator](/node/operations/#enroll-a-follower).
+Keep verified [history and FILE backups](/node/backup-recovery/) on separate
+storage. Retain each machine's protected credentials and any independent
+funded recovery authority separately. An already enrolled zero-RDC machine
+can replicate history and files. It must hold enough confirmed RDC to take over
+production under [succession](/protocol/succession/).

@@ -33,18 +33,16 @@ submission preserves its original ID and pauses repeat actions.
 
 ## Inspect the chain with Explorer
 
-Explorer provides blocks, transactions, addresses, tokens, contracts, events,
-FILE metadata and network status. Search or follow an identifier link to inspect
-an exact entity. Address outputs and holdings, contract storage/events and lists
-use bounded pages; a failed read is unavailable, not an empty result.
+On revision 59, Explorer reads blocks, transactions, account activity, contract
+views and events, and FILE availability through the native RPC. The overview shows
+recent blocks and transactions together. Open a block for its signed transactions
+and execution results. An account page can browse its confirmed history in
+bounded pages.
 
-Dashboard Live Activity shows transactions only, excluding coinbases and block
-events. Its Transactions counter counts confirmed non-coinbase transactions.
-Full ledger lists retain coinbases, including genesis allocations. The Mempool
-tab after Txs shows pending transactions observed on the selected node; its
-bounded pages refresh as the pool changes. Pending status does not establish
-block inclusion or successful execution, and an unavailable read is not an empty
-mempool.
+Recent execution results can use the node's receipt cache. For older blocks, the
+node reconstructs execution from signed history, starting from the nearest
+available checkpoint. A historical read can therefore take longer. See
+[native RPC](/developers/rpc/) for history cursors and replay.
 
 On a transaction, separate submission and inclusion from execution. A receipt's
 success and execution status must agree, and the receipt must match the requested

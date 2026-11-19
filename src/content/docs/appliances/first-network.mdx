@@ -1,96 +1,76 @@
 ---
 title: Create your network
-description: Set up a new private network using Manager and the Riadchain wallet, keeping the same saved files throughout.
+description: Set up a new private network with Manager and the Riadchain wallet, keeping the original network files throughout.
 ---
 
-Start after [pairing your machines](/appliances/connect-machines/). This creates
-a **new** network on prepared, unconfigured machines. Joining an existing network
-or restoring its archive through Manager is not available yet. Physical Debian
-machines and [Proxmox VMs](/node/proxmox/) use the same setup workflow.
+Start after [pairing your machine](/appliances/connect-machines/). The current
+guided setup starts a single prepared, unconfigured machine. Android Manager
+prepares the machine. The separate Riadchain wallet owns the signing keys and
+approves the network. Advanced users can [set up without either app](/node/quickstart/).
 
-Advanced users can create a one-machine network through the
-[workstation CLI clients](/node/cli-setup/) instead. Choose CLI or phone for the
-machine's single controller; independent simultaneous enrollment is unavailable.
+## 1. Create the request in Manager
 
-## 1. Choose the machines in Manager
+On **Machines**, find **Set up a network** and choose **Choose machine**. Select
+the intended appliance, choose **Create request**, then **Save setup request**.
+Use **Open Riadchain wallet** to continue, or select the saved file in the
+wallet's appliance setup screen.
 
-On **Machines**, find **Set up a network** and choose **Choose machines**.
-Select only the machines intended for this network, then choose **Create request**.
-The current setup uses the first machine in the request as the funded block
-producer; the others start as replicas. You will review that identity in the wallet.
-One prepared machine can start a network. Its signed setup uses zero required
-FILE peer acknowledgements, so local file publication works without another node;
-local CID/size verification still applies. This policy is fixed in genesis and
-adding a replica later does not change it. With multiple prepared machines, setup
-requires one peer acknowledgement.
+## 2. Back up four accounts in Riadchain
 
-Choose **Save setup request** and save the `.riadrequest` file somewhere you can
-find again on your phone. Manager records the latest protocol supported by all
-selected machines at block 1. Machines with different starting rules need matching
-software before setup. Use Android's file picker for each handoff below; there
-is no automatic app-to-app transfer yet.
+Open the original request in the **Riadchain** wallet. Check that the machine is
+the one you intend to start. Confirm the setup and open the recovery phrases when
+the wallet asks. Save them offline with their exact labels:
 
-## 2. Back up the keys in Riadchain
+| Account | Initial funding | Purpose |
+| --- | --- | --- |
+| Network owner | 10,000 RDC | Authorizes the initial machine to produce blocks |
+| Backup owner | 10,000 RDC | Retains independent funded recovery authority |
+| Spending account | 100 RDC | Everyday transfers, transactions and fees |
+| Backup spending account | 100 RDC | An independent funded account for spending |
 
-Open the **Riadchain** app, then **Settings → Set up appliances → Import setup
-request**. Select the saved `.riadrequest` and check the machines and starting
-protocol. Genesis is block 0; the recorded starting protocol applies at block 1. Check
-that the machine labelled **Validator** is the intended first producer before
-choosing **Unlock or create network keys**. If the list is wrong, stop and check
-the selection with your installer before creating keys or signing.
+The wallet creates all four keys. Write down each phrase before choosing
+**I saved all four phrases offline**. Manager never needs these phrases.
+The operations key that reaches the appliance cannot spend from the owner account.
 
 <figure className="app-screen">
-  <img src="/images/appliances/wallet-appliance-setup.webp" alt="Riadchain Set up appliances screen before importing a setup request, explaining that owner keys stay in the wallet." width="720" height="1440" loading="lazy" />
-  <figcaption>The wallet starts with the request from Manager. It does not claim machines itself.</figcaption>
+  <img src="/images/appliances/wallet-appliance-setup.webp" alt="Riadchain wallet's appliance setup entry before a request is imported." width="720" height="1440" loading="lazy" />
+  <figcaption>This earlier screen shows where the wallet handoff begins. Follow the current app's prompts after importing your request.</figcaption>
 </figure>
-
-Reveal and write down all three phrases, using the app's exact labels:
-**Validator**, **Recovery**, and **Replacement validator**. If there are multiple
-replicas, also record their account indexes shown by the app. Keep these backups
-offline and private, then choose **I backed up all three phrases**.
-
-These labels identify key groups, not different machine models. The replacement
-owner's key remains off your operating machines.
 
 ## 3. Review the network definition
 
-Follow the handoff in order:
-
 | In this app | Choose | Open the saved file in |
 | --- | --- | --- |
-| Riadchain | **Export network plan** (`.riadplan`) | Manager: **Import network plan** |
-| Manager | **Save prepared definition** (`.riadgenesis`) | Riadchain: **Import prepared genesis** |
-| Riadchain | Review the matching definition, then **Sign and seal appliance keys** and **Export sealed setup** (`.riadsetup`) | Manager: **Import sealed setup** |
+| Riadchain | **Save network plan** | Manager: **Import network plan** |
+| Manager | **Save network definition** | Riadchain: **Import prepared genesis** |
+| Riadchain | **Sign network setup**, then **Save signed setup** | Manager: **Import signed setup** |
 
-The wallet checks that the prepared network matches your original request before
-signing. Your phrases and owner keys stay in the wallet. The sealed file contains
-public network information and encrypted machine credentials.
+The wallet checks the prepared definition against the original request and
+accounts. Confirm the intended machine and genesis before signing. The signed
+setup includes public network information and operational credentials encrypted
+for that machine.
 
-## 4. Prepare, then start
+The one-machine network verifies FILE bytes locally and needs no peer
+acknowledgement before publication. This policy is part of signed genesis.
+Keep verified backups of active FILE bytes separately.
 
-In Manager, review **Prepare machines** and authorize it on your phone. Choose
-**Check setup outcomes** until every machine reports **Prepare: succeeded**.
-Then review **Start network** and authorize it.
+## 4. Prepare and start
 
-Check outcomes again until all original start jobs report **Start: succeeded**.
-Refresh each machine and confirm its expected **Network**, active **Service**
-and **Ready** status. The wallet shows block height; blocks normally arrive every
-ten seconds. Manager does not currently display block hashes or archive coverage.
+In Manager, review **Prepare machine** and authorize it on the phone. Use
+**Check setup status** until preparation succeeds. Then choose **Start network**,
+authorize it and check the saved status again. When Manager reports **Network
+running**, refresh the machine and verify that the expected network is ready.
 
-If a result is unknown or unresolved, keep the saved request and [check its
-outcome](/appliances/updates-and-help/#when-an-operation-is-uncertain). Do not
-create another network or new recovery phrases to retry it.
+The wallet keeps the network's connection details with the saved setup. Verify
+the expected connection and an advancing block height before sending funds.
+If the machine's endpoint changes later, edit the connection to use the new
+trusted address.
 
 ## 5. Keep the setup record
 
-Keep the request, signed setup, account indexes and paper phrase backups.
-**Close completed setup** in Manager closes the workflow without stopping nodes.
-Archiving the signed wallet setup retains its original keys and file for later
-reimport; it does not erase a running network.
+Choose **Done** after the original start succeeds. Keep the signed setup,
+network identity and four phrase backups. An unknown result calls for
+[checking the original request](/appliances/updates-and-help/#when-an-operation-is-uncertain).
+Use the same files and keys while reconciling it.
 
-Additional machines can become eligible producers when their owner accounts are
-funded through the wallet. The current setup screen does not offer a multiple
-producer allocation selector. Your shop preferences do not change network rules
-or move funds automatically.
-
-Next: [use your network](/appliances/everyday-use/).
+Next, [use your network](/appliances/everyday-use/).

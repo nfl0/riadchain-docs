@@ -103,9 +103,8 @@ plans and encrypted operational keys; the separate Riadchain wallet retains owne
 keys and signs genesis. Do not create `node.toml` or chain history manually before
 this guided setup.
 
-For one fresh machine, [workstation CLI setup](/node/cli-setup/) offers the same
-handoff without a phone. Choose CLI or phone enrollment as the machine's single
-controller.
+For one fresh machine, [native CLI setup](/node/quickstart/) configures a machine
+without Manager or the phone.
 
 For an existing network, use the operator's [peer enrollment](/node/operations/#enroll-a-follower)
 procedure with the original signed genesis. Guided joining and archive restoration

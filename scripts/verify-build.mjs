@@ -24,10 +24,12 @@ function walk(node, visit) {
 
 async function document(path) {
   if (documents.has(path)) return documents.get(path);
-  const result = { ids: new Set(), links: [], canonical: null };
+  const result = { ids: new Set(), links: [], canonical: null, title: '', redirects: false };
   walk(parse(await readFile(path, 'utf8')), node => {
     const attrs = new Map((node.attrs ?? []).map(attr => [attr.name, attr.value]));
     if (attrs.has('id')) result.ids.add(attrs.get('id'));
+    if (node.tagName === 'title') result.title = (node.childNodes ?? []).map(child => child.value ?? '').join('');
+    if (node.tagName === 'meta' && attrs.get('http-equiv')?.toLowerCase() === 'refresh') result.redirects = true;
     if (node.tagName === 'link' && attrs.get('rel') === 'canonical') result.canonical = attrs.get('href');
     if (attrs.has('data-docs-diagram')) {
       errors.add(`${relative(root, path)}: public documentation must not contain diagrams`);
@@ -66,6 +68,16 @@ for (const path of html) {
     } catch {
       errors.add(`${name}: missing local target ${raw}`);
     }
+  }
+}
+
+for (const [route, title] of [
+  ['protocol/genesis', 'Signed genesis'],
+  ['protocol/upgrades', 'Protocol upgrades'],
+]) {
+  const page = await document(join(root, route, 'index.html'));
+  if (page.redirects || !page.title.startsWith(`${title} |`)) {
+    errors.add(`${route}: expected a standalone ${title} guide`);
   }
 }
 

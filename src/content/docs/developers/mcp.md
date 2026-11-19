@@ -10,9 +10,15 @@ or Streamable HTTP. Older protocol traffic is rejected; configure a client that
 supports this protocol revision. A package update alone does not select the
 modern wire protocol.
 
+:::note[Revision 59 compatibility]
+The MCP server currently uses the earlier provider API. Its network tools do not
+yet work with revision 59. To build an integration for a current node, start
+with the [workspace NetworkClient](/developers/sdk/#connect-to-revision-59).
+:::
+
 ## Start with read-only access
 
-From your repository workspace:
+From your repository workspace with a compatible earlier node:
 
 ```sh
 bun install --frozen-lockfile

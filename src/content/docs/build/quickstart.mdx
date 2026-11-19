@@ -82,9 +82,9 @@ console.log(code);
 
 The `add` method takes named arguments. Its logical input is `{ by: 5n }`, with
 `add` supplied as the method selector. For a signed Charlie call, use
-[contract argument encoding](/developers/contract-arguments/) before building the
-transaction. For a public read, `provider.callView(address, 'get', {})` uses the
-view RPC codec instead.
+[the SDK's typed argument handling](/developers/contract-arguments/). For a
+revision 59 read, `client.callView({ contractAddress, method: 'get', args: {} })`
+uses the view RPC codec.
 
 Compilation produces code, not a deployed address. The deploy builder needs the
 actual deployer, salt, gas limit, live chain identity and funded inputs. Read
