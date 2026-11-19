@@ -158,9 +158,13 @@ The earlier qualification runs describe their exact binaries and workloads.
 Measure the current node with the actual contract state, account population and
 FILE sizes you expect to serve.
 
-The current daemon retains a recent receipt cache with a 256-block and
-8 MiB budget, plus a separately bounded recent-events cache. Signed block
-history stays on disk. Transaction and account queries use indexes constructed
+From node package revision 61, the recent receipt cache defaults to a
+10,000-block height window and 128 MiB of estimated retained receipt memory.
+It can retain fewer blocks when the memory budget is reached. The optional
+[`network.rpc` settings](/node/configuration/#receipt-cache) tune these local
+limits. Include live state and temporary requests when planning total node
+memory. The separate recent-event cache holds up to 256 blocks and 8 MiB.
+Signed block history stays on disk. Transaction and account queries use indexes constructed
 from that history. Older execution can require replay from a verified
 checkpoint, so historical reads may increase CPU and disk I/O. See
 [historical execution](/node/operations/#read-recent-and-historical-execution).

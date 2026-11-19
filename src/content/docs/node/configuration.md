@@ -29,7 +29,7 @@ Without an explicit path, the daemon checks `./node.toml`, then `/etc/riadchain/
 | `data_dir` | Prepared directory with this machine's credentials, complete signed history and FILE archive |
 | `network.genesis` | Full trusted genesis hash, independently checked against this machine's prepared record |
 | `network.peers` | Exact authenticated peer routes. Use `[]` for an approved standalone setup |
-| `network.rpc` | Optional client RPC listener, protected bearer file and browser origin allowlist |
+| `network.rpc` | Optional client RPC listener, protected bearer file, browser origin allowlist and receipt-cache settings |
 | `storage` | Pinned filesystem identity for packaged deployments |
 
 Keep credential files and the RPC token outside source control and restrict access to the node service account. Configure peer routes using the enrolled account and endpoints described in [peer enrollment](/node/operations/#enroll-a-follower).
@@ -144,5 +144,38 @@ headers and forward `OPTIONS` requests and CORS response headers. Keep the beare
 authorized service. See [Connect's browser CORS reference](https://connectrpc.com/docs/cors/).
 
 ## Limits and storage planning
+
+### Receipt cache
+
+Node package revision **61 or later** supports two optional positive integers
+under `[network.rpc]`. Add overrides to the existing table or omit the keys
+to use these defaults.
+
+```toml
+receipt_cache_blocks = 10000
+receipt_cache_mib = 128
+```
+
+| Setting | Default | What it limits |
+| --- | --- | --- |
+| `receipt_cache_blocks` | `10000` | Recent block-height window, including the tip |
+| `receipt_cache_mib` | `128` | Estimated memory retained by the receipt cache, in MiB |
+
+The memory budget can shorten the height window. The node replays signed history
+on a cache miss. Total node memory also includes execution, current state and
+replay allocations.
+
+Upgrade from revision 60 before adding these keys. The existing configuration
+automatically uses the new defaults after the update. For later overrides,
+run `config check` as the node service account and restart the node through
+systemd or Manager.
+
+The receipt cache is built from verified history at startup and after a
+succession branch replacement. These settings govern local query performance.
+The separate recent-event cache holds up to 256 blocks and 8 MiB. See
+[recent and historical execution](/node/operations/#read-recent-and-historical-execution)
+and [memory planning](/node/system-requirements/#allow-for-request-and-cache-peaks).
+
+### Other limits
 
 Genesis parameters bound transactions, blocks, FILE size and VM execution. Transport-specific limits also bound chunk size, read concurrency and request duration. Confirmed history is kept on every node. [Checkpoints and the recent execution cache](/node/operations/#read-recent-and-historical-execution) accelerate reads without replacing the signed log. Keep [verified FILE backups](/node/backup-recovery/) on independent storage.

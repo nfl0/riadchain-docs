@@ -37,7 +37,16 @@ Every node retains the full signed history. Checkpoints, indexes and cached exec
 | `NetworkService.ListAccountTransactions` | Indexed, confirmed account history, newest first and tied to a signed anchor |
 | `NetworkService.ListEvents` | Recent contract events by default, with explicit anchored historical ranges |
 
-The node reuses native receipts for up to 256 recent blocks within an 8 MiB budget. A separate recent-events cache has its own 256-block and 8 MiB limits. The node builds both during startup and after a succession branch replacement. A cached receipt does not require re-executing the block.
+From node package revision 61, the recent receipt cache defaults to a
+10,000-block height window and 128 MiB of estimated retained receipt memory.
+The memory cap can shorten that window. The node serves the current tip’s
+results directly from execution and replays signed history on cache misses.
+Configure the limits under
+[`network.rpc`](/node/configuration/#receipt-cache).
+
+The separate recent-event cache holds up to 256 blocks and 8 MiB. The node
+rebuilds both caches from verified signed history at startup and after a
+succession branch replacement.
 
 RPC-enabled nodes attempt a bounded state checkpoint at ordinary block heights divisible by 10,000. They retain up to two checkpoints of at most 64 MiB each. Historical reads start from the closest verified checkpoint preceding the requested range, or from genesis if none is available. The node chooses this starting point automatically. A wide historical event range can exceed the read deadline.
 
